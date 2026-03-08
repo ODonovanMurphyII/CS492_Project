@@ -104,7 +104,7 @@ wolfSSL is used for real TLS 1.3 — no raw socket header mimicry. The custom pr
 
 ### 4.1 Real TLS via wolfSSL — Replacing Fake Headers
 
-The previous approach of writing raw `0x17 0x0303` bytes onto a POSIX socket does not work: Mosquitto on port 443 expects a real TLS handshake and will reject a connection that skips it. The fix is to run genuine TLS and carry the custom protocol inside it.
+Run TLS and carry the custom protocol inside it.
 
 ```
 Real TLS 1.3 (wolfSSL)
@@ -115,7 +115,7 @@ Real TLS 1.3 (wolfSSL)
                                     └── plaintext || Ed25519 signature
 ```
 
-To Wireshark, this is a long-running HTTPS session — because it is one. No fake headers required.
+To Wireshark, this is a long-running HTTPS session.
 
 ```c
 /* Phase 1 — wolfSSL setup: real TLS 1.3, mTLS with X.509 client cert */
@@ -263,7 +263,8 @@ int perform_key_exchange(WOLFSSL *ssl, int is_client,
 Ed25519 signatures are embedded in the plaintext *before* encryption, not appended to the outside of the ciphertext. This is non-negotiable for two reasons:
 
 1. **Authenticity within the group:** A single shared session key means any member can forge ciphertext. The Ed25519 signature, verifiable against the sender's known long-term public key, provides proof that a specific identity produced this message. The GCM tag proves integrity; the Ed25519 signature proves authorship.
-2. **Signature confidentiality:** An external signature leaks metadata — it reveals who sent a message even to an observer who cannot decrypt it. Encrypting the signature hides sender identity from unauthenticated users.
+   
+3. **Signature confidentiality:** An external signature leaks metadata — it reveals who sent a message even to an observer who cannot decrypt it. Encrypting the signature hides sender identity from unauthenticated users.
 
 ```
 Plaintext structure before encryption:
