@@ -419,14 +419,14 @@ The final demonstration will show, via Wireshark capture, that encrypted and pla
 
 | Phase | Tasks |
 |---|---|
-| Week 1–2 | Socket infrastructure, port 443 setup, HTTP Upgrade mimic, Mosquitto broker configuration |
-| Week 3–4 | CA generation (OpenSSL), X.509 client certificates, mTLS configuration |
-| Week 5–6 | Ed25519 mutual authentication, challenge-response in C, libsodium integration |
-| Week 7–8 | X25519 ECDHE key exchange, session key derivation, sodium_memzero cleanup |
-| Week 9–10 | AES-256-GCM payload encryption, 'd' field packer, HMAC validation, sequence numbers |
-| Week 11–12 | Steganographic envelope, JSON wrapping, Wireshark verification |
-| Week 13 | UX/CLI toggle, mid-session upgrade handshake, secure/insecure mode demo |
-| Week 14 | Immutable logging, final integration, VMware multi-client demonstration |
+| To Do | Socket infrastructure, port 443 setup, HTTP Upgrade mimic, Mosquitto broker configuration |
+| To Do | CA generation (OpenSSL), X.509 client certificates, mTLS configuration |
+| To Do | Ed25519 mutual authentication, challenge-response in C, libsodium integration |
+| To Do | X25519 ECDHE key exchange, session key derivation, sodium_memzero cleanup |
+| To Do | AES-256-GCM payload encryption, 'd' field packer, HMAC validation, sequence numbers |
+| To Do | Steganographic envelope, JSON wrapping, Wireshark verification |
+| To Do | UX/CLI toggle, mid-session upgrade handshake, secure/insecure mode demo |
+| To Do | Immutable logging, final integration, VMware multi-client demonstration |
 
 ---
 
