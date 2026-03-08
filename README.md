@@ -41,7 +41,7 @@ The project will use a simple client/server configuration in Python. A client wi
 Client Side: Handles End-to-End encryption so the server doesn't see the plaintext
 Server Side: Acts as the broker for the data and presents its identity to sensors/clients
 
-### Flow:
+### Flow
 1. Establish basic socket connection
 2. Mutual authentication of all entities (each process, application, device, or user interacting must prove it's identity, preferably with a hardware-backed entity such as a client certificate or signed token when sending  data. The steraming endpoint (broker) should present it's identity to the sensors. If not using a YubiKey or TPM, we simulatate with software-based keys like RSA.
 4. The consumer should autheticate before subscribing. Stream topics, queues, or API endpoints should have fine-grained access policies such as role-based access control (RBAC) or attribute based access control (ABAC) which determine where each user/device/sensor should read or write data.
@@ -58,10 +58,11 @@ Zero Trust Applied to the Various Components:
 4. Segmentation
 5. Real Time Monitoring 
 
-* Describe the research design or methodology that will be used to achieve the project objectives.
-* Explain the data collection methods, tools, or techniques that will be employed.
-* Outline the steps or procedures that will be followed to conduct the project.
-* A flowchart/diagram is required to show the steps or procedures.
+### Describe the research design or methodology that will be used to achieve the project objectives.
+### Explain the data collection methods, tools, or techniques that will be employed.
+### Outline the steps or procedures that will be followed to conduct the project.
+* 
+### A flowchart/diagram is required to show the steps or procedures.
 
 ### Considerations = the trust model.
 * 1. Will we use client side or server side encryption? Client-side (End-to-End) means that the server will never see the plaintext but server side encryption means the server is trusted and could intercept messages.
@@ -114,7 +115,7 @@ Zero trust requires strong authentication (often multi-factor, strict authorizat
 Include a list of references cited in the proposal using the appropriate citation style (e.g., APA, MLA).
 
 
-### For analysis of zero-trust architectures in real-time communnication systems
+### For analysis of zero-trust architectures in real-time communication systems
 * Bhoite, Harshraj. Zero-Trust Architecture in Streaming Dataflows. TechRxiv, 20 July 2025, https://doi.org/10.36227/techrxiv.175303721.12297807/v1
 *Nadim Kobeissi, Karthikeyan Bhargavan, Bruno Blanchet. Automated Verification for Secure Messaging Protocols and Their Implementations: A Symbolic and Computational Approach. 2nd IEEE
 European Symposium on Security and Privacy , Apr 2017, Paris, France. pp.435 - 450, ff10.1109/EuroSP.2017.38ff. ffhal-01575923f
