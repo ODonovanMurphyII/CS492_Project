@@ -25,8 +25,6 @@ This feature is added to demonstrate the effect encryption has on messages.
 The project will use a simple client/server configuration. A client will run a Python script on their machine which connects to the remote server running any accompanying server-side script. 
 
 ### Responsibilities of the Client and the Server:
-1. **The Client:**
-2. **The Server:**
 
 ### Flow:
 1. Establish basic socket connection
@@ -39,6 +37,13 @@ The project will use a simple client/server configuration. A client will run a P
 * Outline the steps or procedures that will be followed to conduct the project.
     * A flowchart/diagram is required to show the steps or procedures.
 
+Considerations = the trust model.
+1. Will we use client side or server side encryption? Client-side (End-to-End) means that the server will never see the plaintext but server side encryption means the server is trusted and could intercept messages.
+2. How long data will be cached? Will clients be able to access only messages being exchanged currently in the chat room or will they have archival history that can be viewed.
+
+Responsibilities of: 
+1. **The Client:**
+2. **The Server:**
 
 
 ## 4. Expected Outcomes:
@@ -61,4 +66,6 @@ The project will use a simple client/server configuration. A client will run a P
 * Emphasize the potential impact or significance of the project.
 
 ## 9. References:
+
+
 * Include a list of references cited in the proposal using the appropriate citation style (e.g., APA, MLA).
