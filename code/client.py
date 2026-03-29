@@ -15,7 +15,7 @@ print("Starting Client")
 clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
-    ## First we want to get the server up and running
+    ## First we want to connect
     clientSocket.connect((common.SERVER_IP, common.PORT))
     socketInfo = clientSocket.getsockname
     #heartBeat = threading.Thread(connectionCheck)

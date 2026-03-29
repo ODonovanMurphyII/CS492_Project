@@ -27,9 +27,8 @@ def server_init():
 def receiver(socket, address):
     while(1):
         data = socket.recv(4095)
-        if (data != common.CONNECTION_CHECK):
-            data = data.decode('utf-8')
-            print("USER" + str(address[1]) + ": " + data)
+        data = data.decode('utf-8')
+        print("USER" + str(address[1]) + ": " + data)
 
 def connection_handler(sockets, addresses, listeners, serverSocket):
     while(1):
@@ -37,6 +36,7 @@ def connection_handler(sockets, addresses, listeners, serverSocket):
         clientSockets.append(newConnection)
         clientAddresses.append(newAddress)
         print("Client" + str(clientAddresses[-1][1]) + " Joined!")
+        threading.Thread(target=receiver, args=(clientSockets[-1], clientAddresses[-1]), daemon=True).start()
         # listeners.append(threading.Thread(receiver(clientSockets[-1], clientAddresses[-1])))
         # listeners[-1].daemon = True
         # #listeners[-1].start
