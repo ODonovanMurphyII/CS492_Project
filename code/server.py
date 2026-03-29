@@ -15,9 +15,14 @@ except Exception as e:
     serverSocket.close()
     sys.exit()
 
-clients = []
+clientSockets = []
+clientAddresses = []
 print("Server running")
 print("Waiting for client")
-clients.append(serverSocket.accept())
+newConnection, newAddress = serverSocket.accept()
+clientSockets.append(newConnection)
+clientAddresses.append(newAddress)
 print("Client Joined!")
+data = newConnection.recv(4095)
+print(data)
 serverSocket.close()

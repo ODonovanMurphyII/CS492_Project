@@ -14,5 +14,5 @@ except Exception as e:
     clientSocket.close()
     sys.exit()
 
-##clientSocket.send("test" + common.END_OF_STRING)
-clientSocket.close()
+clientSocket.send(b"test")
+
