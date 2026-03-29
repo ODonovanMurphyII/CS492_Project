@@ -24,19 +24,28 @@ def server_init():
     print("Server running")
     return serverSocket
 
-def receiver(socket, address):
+def receiver(socket, address, users):
     while(1):
         data = socket.recv(4095)
         data = data.decode('utf-8')
-        print("USER" + str(address[1]) + ": " + data)
+        username = "USER" + str(address[1]) 
+        print(username + ":" + data)
+        data = username + ":" + data
+        data = data.encode('utf-8') 
+        for user in users:
+            user.send(data)
 
 def connection_handler(sockets, addresses, listeners, serverSocket):
     while(1):
         newConnection, newAddress = serverSocket.accept()
         clientSockets.append(newConnection)
         clientAddresses.append(newAddress)
-        print("Client" + str(clientAddresses[-1][1]) + " Joined!")
-        threading.Thread(target=receiver, args=(clientSockets[-1], clientAddresses[-1]), daemon=True).start()
+        username = "Client" + str(clientAddresses[-1][1])
+        print(username + " Joined!")
+        welcomeMsg = "Welcome to the Chatroom " + username + '!'
+        welcomeMsg = welcomeMsg.encode('utf-8')
+        newConnection.send(welcomeMsg)
+        threading.Thread(target=receiver, args=(clientSockets[-1], clientAddresses[-1], clientSockets), daemon=True).start()
         # listeners.append(threading.Thread(receiver(clientSockets[-1], clientAddresses[-1])))
         # listeners[-1].daemon = True
         # #listeners[-1].start

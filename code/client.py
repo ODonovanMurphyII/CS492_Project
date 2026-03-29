@@ -11,6 +11,15 @@ def connectionCheck(socket):
         clientSocket.close()
         sys.exit()
 
+def read_from_server(socket):
+    while(1):
+        try:
+            data = socket.recv(4095)
+            data = data.decode('utf-8')
+            print(data)
+        except Exception as e:
+            print(f"Error reading data: {e}")
+
 print("Starting Client")
 clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -18,6 +27,9 @@ try:
     ## First we want to connect
     clientSocket.connect((common.SERVER_IP, common.PORT))
     socketInfo = clientSocket.getsockname
+    reader = threading.Thread(target=read_from_server,args=(clientSocket,))
+    reader.daemon = True
+    reader.start()
     #heartBeat = threading.Thread(connectionCheck)
     #heartBeat.daemon = True
     #heartBeat.start = True
