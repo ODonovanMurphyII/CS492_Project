@@ -23,6 +23,12 @@ newConnection, newAddress = serverSocket.accept()
 clientSockets.append(newConnection)
 clientAddresses.append(newAddress)
 print("Client Joined!")
-data = newConnection.recv(4095)
-print(data)
+while(1):
+    data = newConnection.recv(4095)
+    if(data == common.EXIT):
+        print("Client Quit")
+        newConnection.close()
+        break
+    else:
+        print(data)
 serverSocket.close()

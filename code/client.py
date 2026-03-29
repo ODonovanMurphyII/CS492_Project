@@ -14,5 +14,12 @@ except Exception as e:
     clientSocket.close()
     sys.exit()
 
-clientSocket.send(b"test")
+while(1):
+    data = input(":")
+    data = data.encode('utf-8')
+    if(data == common.EXIT):
+        print("Quitting")
+        clientSocket.send(data)
+        clientSocket.close()
+    clientSocket.send(data)
 
