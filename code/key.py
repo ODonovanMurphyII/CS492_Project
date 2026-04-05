@@ -1,0 +1,1 @@
+publicKey = b'\42'

@@ -2,6 +2,7 @@ import socket
 import sys
 import common
 import threading
+import key
 
 ## Eventually I will make a client class...for now
 clientSockets = []
@@ -33,7 +34,8 @@ def receiver(socket, address, users):
         data = username + ":" + data
         data = data.encode('utf-8') 
         for user in users:
-            user.send(data)
+            if (user != socket):
+                user.send(data)
 
 def connection_handler(sockets, addresses, listeners, serverSocket):
     while(1):
@@ -43,8 +45,9 @@ def connection_handler(sockets, addresses, listeners, serverSocket):
         username = "Client" + str(clientAddresses[-1][1])
         print(username + " Joined!")
         welcomeMsg = "Welcome to the Chatroom " + username + '!'
-        welcomeMsg = welcomeMsg.encode('utf-8')
-        newConnection.send(welcomeMsg)
+        newConnection.send(common.frame_message(common.MT_REG,welcomeMsg))
+        keyMesssage = common.SOH + key.publicKey + common.CLEAR_TERMINAL
+        newConnection.send(keyMesssage)
         threading.Thread(target=receiver, args=(clientSockets[-1], clientAddresses[-1], clientSockets), daemon=True).start()
         # listeners.append(threading.Thread(receiver(clientSockets[-1], clientAddresses[-1])))
         # listeners[-1].daemon = True
