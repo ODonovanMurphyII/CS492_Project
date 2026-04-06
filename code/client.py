@@ -3,7 +3,7 @@ import common
 import sys
 import threading
 
-messages = []
+messages = [[]]
 incomingData = []
 def connectionCheck(socket):
     try:
@@ -14,25 +14,26 @@ def connectionCheck(socket):
         sys.exit()
 
 def parse_from_server():
-    messageCounter = 0
     i = 0
+    messageCounter = 0
     dataLength = len(incomingData[0])
-    while(i < dataLength):
-        byteBuffer = incomingData[0][0:1]
+    while(i <= dataLength):
+        byteBuffer = incomingData[0][i:i+1]
+        messages[messageCounter].append([byteBuffer])
+        i += 1
+        if(byteBuffer == common.EOT):
+            messages.append([])
+            messageCounter += 1
+    incomingData.clear()
+        
 
 
 def read_from_server(socket):
     while(1):
         try:
             incomingData.append(socket.recv(4095))
-            # if(byteData[0] == common.SOH):                  # grabing the public key
-            #     serverPublicKey = byteData[1]
-            # else:
-            #     #byteData[-1] = b'\x00'
-            #     printData = byteData[2:]
-            #     printData = printData.decode('utf-8')
-            #     print(printData)
             parse_from_server()
+            messages
         except Exception as e:
             print(f"Error reading data: {e}")
 

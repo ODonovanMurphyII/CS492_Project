@@ -9,8 +9,10 @@ EOT = b'\x04'
 MT_REG = b'\x00'
 MT_KEY = b'\x01'
 
-def frame_message(messageType: bytes, data :bytes):
-    message = SOH + messageType + data.encode('utf-8') + EOT
+def frame_message(messageType: bytes, data):
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    message = SOH + messageType + data + EOT
     return message 
 
 
