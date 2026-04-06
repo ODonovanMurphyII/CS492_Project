@@ -8,7 +8,7 @@ SOH = b'\x01'
 EOT = b'\x04' 
 MT_CHAT = b'\x00'
 MT_KEY = b'\x05'
-KEY_LOCATION = 2
+KEY_LOCATION = 0
 
 def frame_message(messageType: bytes, data):
     bytes = []

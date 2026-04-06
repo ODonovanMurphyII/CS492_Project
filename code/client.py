@@ -37,7 +37,7 @@ def create_message_list():
     dataLength = len(incomingData[0])
 
     ## Saving all of my messages
-    while(i <= dataLength):
+    while(i < dataLength):
         byteBuffer = incomingData[0][i:i+1]
         messages[messageCounter].append(byteBuffer)
         i += 1
@@ -45,6 +45,7 @@ def create_message_list():
             messages.append([])
             messageCounter += 1
     incomingData.clear()
+    incomingData.append([])
     i = 0
     while(i < len(messages)-1):
         parse_message(messages[i])
