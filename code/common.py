@@ -8,11 +8,16 @@ SOH = b'\x01'
 EOT = b'\x04' 
 MT_CHAT = b'\x00'
 MT_KEY = b'\x05'
+KEY_LOCATION = 2
 
 def frame_message(messageType: bytes, data):
+    bytes = []
     if isinstance(data, str):
         data = data.encode('utf-8')
-    message = SOH + messageType + data + EOT
+        message = SOH + messageType + data + EOT
+    else:
+        message = [SOH, messageType, data, EOT]
+        message = b"".join(message)
     return message 
 
 

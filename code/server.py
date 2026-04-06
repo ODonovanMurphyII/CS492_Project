@@ -45,8 +45,8 @@ def connection_handler(sockets, addresses, listeners, serverSocket):
         print(username + " Joined!")
         welcomeMsg = "Welcome to the Chatroom " + username + '!'
         newConnection.send(common.frame_message(common.MT_CHAT,welcomeMsg))
-        keyMesssage = key.publicKey + common.CLEAR_TERMINAL
-        newConnection.send(common.frame_message(common.MT_KEY, keyMesssage))
+        #keyMesssage = [key.publicKey, common.CLEAR_TERMINAL]
+        newConnection.send(key.publicKeyMsg)
         threading.Thread(target=receiver, args=(clientSockets[-1], clientAddresses[-1], clientSockets), daemon=True).start()
         # listeners.append(threading.Thread(receiver(clientSockets[-1], clientAddresses[-1])))
         # listeners[-1].daemon = True

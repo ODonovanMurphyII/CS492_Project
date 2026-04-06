@@ -1,1 +1,1 @@
-publicKey = b'\42'
+publicKeyMsg = b'\x01\x05\xA2\x04'

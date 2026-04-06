@@ -25,9 +25,11 @@ def parse_message(message):     ## TODO crude. needs error handling
         i += 1
     if msgType == common.MT_CHAT:
         chatMessages.append(data)
+        chatMessages.append([])
     if msgType == common.MT_KEY:
-        chatMessages.append(specialMessages)
-        serverPublicKey = data
+        specialMessages.append(data)
+        specialMessages.append([])
+        serverPublicKey = data[common.KEY_LOCATION]
 
 def create_message_list():
     i = 0
@@ -37,26 +39,33 @@ def create_message_list():
     ## Saving all of my messages
     while(i <= dataLength):
         byteBuffer = incomingData[0][i:i+1]
-        messages[messageCounter].append([byteBuffer])
+        messages[messageCounter].append(byteBuffer)
         i += 1
         if(byteBuffer == common.EOT):
             messages.append([])
             messageCounter += 1
     incomingData.clear()
     i = 0
-    while(i <= len(messages)):
-        parse_message(messages[0])
-        messages.clear()
+    while(i < len(messages)-1):
+        parse_message(messages[i])
+        i += 1
+    messages.clear()
 
         
-
+def print_messages(messages):
+    messages.pop()      # pop off the empty row
+    while(messages):
+        string = messages.pop()
+        string = b"".join(string).decode('utf-8')
+        print(string)
+    messages.clear()
 
 def read_from_server(socket):
     while(1):
         try:
             incomingData.append(socket.recv(4095))
             create_message_list()
-            messages
+            print_messages(chatMessages)
         except Exception as e:
             print(f"Error reading data: {e}")
 
