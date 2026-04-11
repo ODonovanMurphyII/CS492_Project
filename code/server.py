@@ -9,9 +9,15 @@ clientSockets = []
 clientListeners = []
 clientAddresses = []
 
+class server_information:
+    def __init__(self):
+        self.public_key = None
+        self.clientCount = None
 
-def server_init():
+
+def server_init(serverInfo: server_information, keyManager: key.key_manager):
     print("Starting Server")
+    serverInfo.public_key = keyManager.generate_public_key()
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
     ## First we want to get the server up and running
@@ -36,7 +42,7 @@ def receiver(socket, address, users):
             if (user != socket):
                 user.send(data)
 
-def connection_handler(sockets, addresses, listeners, serverSocket):
+def connection_handler(sockets, addresses, listeners, serverSocket, serverInfo: server_information):
     while(1):
         newConnection, newAddress = serverSocket.accept()
         clientSockets.append(newConnection)
@@ -45,31 +51,19 @@ def connection_handler(sockets, addresses, listeners, serverSocket):
         print(username + " Joined!")
         welcomeMsg = "Welcome to the Chatroom " + username + '!'
         newConnection.send(common.frame_message(common.MT_CHAT,welcomeMsg))
-        #keyMesssage = [key.publicKey, common.CLEAR_TERMINAL]
-        newConnection.send(key.publicKeyMsg)
+        publicKeyMsg = common.frame_message(common.MT_KEY,serverInfo.public_key)
+        newConnection.send(publicKeyMsg)
         threading.Thread(target=receiver, args=(clientSockets[-1], clientAddresses[-1], clientSockets), daemon=True).start()
-        # listeners.append(threading.Thread(receiver(clientSockets[-1], clientAddresses[-1])))
-        # listeners[-1].daemon = True
-        # #listeners[-1].start
 
 
-
-
-
-serverSocket = server_init()
-thread_connection_handler = threading.Thread(connection_handler(clientSockets, clientAddresses, clientListeners, serverSocket))
+serverInfo = server_information()
+keyManager = key.key_manager()
+serverSocket = server_init(serverInfo, keyManager)
+thread_connection_handler = threading.Thread(connection_handler(clientSockets, clientAddresses, clientListeners, serverSocket, serverInfo))
 thread_connection_handler.daemon = True
 thread_connection_handler.start()
 
 
 
 
-# while(1):
-#     data = newConnection.recv(4095)
-#     if(data == common.EXIT):
-#         print("Client Quit")
-#         newConnection.close()
-#         break
-#     else:
-#         print(data)
-# serverSocket.close()
+

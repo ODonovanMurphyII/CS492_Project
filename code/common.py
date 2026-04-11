@@ -9,9 +9,13 @@ EOT = b'\x04'
 MT_CHAT = b'\x00'
 MT_KEY = b'\x05'
 KEY_LOCATION = 0
+N_MSB_LOC = 0
+N_LSB_LOC = 1
+E_MSB_LOC = 2
+E_MIDDLEB_LOC = 3
+E_LSB_LOC = 4
 
 def frame_message(messageType: bytes, data):
-    bytes = []
     if isinstance(data, str):
         data = data.encode('utf-8')
         message = SOH + messageType + data + EOT

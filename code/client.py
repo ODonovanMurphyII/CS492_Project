@@ -7,7 +7,13 @@ messages = [[]]
 chatMessages = []
 specialMessages = []
 incomingData = []
-serverPublicKey = None
+class client:
+    def __init__(self):
+        self.e = None
+        self.n = None
+
+me = client()
+
 def connectionCheck(socket):
     try:
         socket.send(common.CONNECTION_CHECK)
@@ -16,11 +22,11 @@ def connectionCheck(socket):
         clientSocket.close()
         sys.exit()
 
-def parse_message(message):     ## TODO crude. needs error handling
+def parse_message(message, client=me):     ## TODO crude. needs error handling
     msgType = message[1]
     data = []
     i = 2
-    while message and message[i] != common.EOT:
+    while message and message[i] != common.EOT: 
         data.append(message[i])
         i += 1
     if msgType == common.MT_CHAT:
@@ -29,7 +35,10 @@ def parse_message(message):     ## TODO crude. needs error handling
     if msgType == common.MT_KEY:
         specialMessages.append(data)
         specialMessages.append([])
-        serverPublicKey = data[common.KEY_LOCATION]
+        client.n = data[common.N_MSB_LOC] + data[common.N_LSB_LOC]
+        client.e = data[common.E_MSB_LOC] + data[common.E_MIDDLEB_LOC] + data[common.E_LSB_LOC]
+
+        
 
 def create_message_list():
     i = 0
@@ -74,6 +83,7 @@ def read_from_server(socket):
 
 print("Starting Client")
 clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
 
 try:
     ## First we want to connect
