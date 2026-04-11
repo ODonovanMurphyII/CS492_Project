@@ -29,16 +29,17 @@ def parse_message(message, client=me):     ## TODO crude. needs error handling
     while message and message[i] != common.EOT: 
         data.append(message[i])
         i += 1
-    if msgType == common.MT_CHAT:
+    if msgType == common.MT_PT_CHAT:
         chatMessages.append(data)
         chatMessages.append([])
     if msgType == common.MT_KEY:
         specialMessages.append(data)
         specialMessages.append([])
         client.n = data[common.N_MSB_LOC] + data[common.N_LSB_LOC]
+        client.n = int.from_bytes(client.n)
         client.e = data[common.E_MSB_LOC] + data[common.E_MIDDLEB_LOC] + data[common.E_LSB_LOC]
-
-        
+        client.e = int.from_bytes(client.e)
+   
 
 def create_message_list():
     i = 0
@@ -66,7 +67,7 @@ def print_messages(messages):
     messages.pop()      # pop off the empty row
     while(messages):
         string = messages.pop()
-        string = b"".join(string).decode('utf-8')
+        string = b"".join(string).decode(common.ENCODING)
         print(string)
     messages.clear()
 
@@ -79,12 +80,22 @@ def read_from_server(socket):
         except Exception as e:
             print(f"Error reading data: {e}")
 
+## Can't go any larger than 2 byte blocks for now
+def encrypt(data, client=me):
+    i = 0
+    plaintextBlocks = []
+    ciphertextBlocks = []
+    buffer = None
+    for i in range(0, len(data), 2):
+        plaintextBlocks.append(data[i:i+2])
+        buffer = int.from_bytes(plaintextBlocks[-1], 'big')
+        buffer = pow(buffer, client.e, client.n)
+        ciphertextBlocks.append(buffer.to_bytes(2, 'big'))
+    return ciphertextBlocks
     
 
 print("Starting Client")
 clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-
 try:
     ## First we want to connect
     clientSocket.connect((common.SERVER_IP, common.PORT))
@@ -92,9 +103,6 @@ try:
     reader = threading.Thread(target=read_from_server,args=(clientSocket,))
     reader.daemon = True
     reader.start()
-    #heartBeat = threading.Thread(connectionCheck)
-    #heartBeat.daemon = True
-    #heartBeat.start = True
 except Exception as e:
     print(f"Could not connect to server! Exeption:{e} | Shutting down!")
     clientSocket.close()
@@ -102,10 +110,12 @@ except Exception as e:
 
 while(1):
     data = input("")
-    data = data.encode('utf-8')
+    data = data.encode(common.ENCODING)
     if(data == common.EXIT):
         print("Quitting")
         clientSocket.send(data)
-        clientSocket.close()
+        clientSocket.close()  
+    data = encrypt(data)  
+    data = b"".join(data)
     clientSocket.send(data)
 

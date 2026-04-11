@@ -33,11 +33,11 @@ def server_init(serverInfo: server_information, keyManager: key.key_manager):
 def receiver(socket, address, users):
     while(1):
         data = socket.recv(4095)
-        data = data.decode('utf-8')
+        data = data.decode(common.ENCODING)
         username = "USER" + str(address[1]) 
         print(username + ":" + data)
         data = username + ":" + data
-        data = data.encode('utf-8') 
+        data = data.encode(common.ENCODING) 
         for user in users:
             if (user != socket):
                 user.send(data)
@@ -50,7 +50,7 @@ def connection_handler(sockets, addresses, listeners, serverSocket, serverInfo: 
         username = "Client" + str(clientAddresses[-1][1])
         print(username + " Joined!")
         welcomeMsg = "Welcome to the Chatroom " + username + '!'
-        newConnection.send(common.frame_message(common.MT_CHAT,welcomeMsg))
+        newConnection.send(common.frame_message(common.MT_PT_CHAT,welcomeMsg))
         publicKeyMsg = common.frame_message(common.MT_KEY,serverInfo.public_key)
         newConnection.send(publicKeyMsg)
         threading.Thread(target=receiver, args=(clientSockets[-1], clientAddresses[-1], clientSockets), daemon=True).start()
