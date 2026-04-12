@@ -69,8 +69,8 @@ def receiver(socket, address, users, serverInfo: server_information):
                 print(username + "(Plaintext):" + plaintext)
         except Exception as e:
             print(f"Server Error: {e}")
-            socket.close()
-            sys.exit()
+            ## TODO to maybe I need to restart the server here
+            
 
 def connection_handler(sockets, addresses, listeners, serverSocket, serverInfo: server_information):
     while(1):

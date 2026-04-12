@@ -64,7 +64,8 @@ def create_message_list():
 
         
 def print_messages(messages):
-    messages.pop()      # pop off the empty row
+    if(messages):
+        messages.pop()      # pop off the empty row
     while(messages):
         string = messages.pop()
         string = b"".join(string).decode(common.ENCODING)
