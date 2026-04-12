@@ -49,26 +49,27 @@ def receiver(socket, address, users, serverInfo: server_information):
         try:
             ## Server output (Raw)
             rawData = socket.recv(4095)
-            rawData = rawData.decode(common.ENCODING)
-            username = "USER" + str(address[1]) 
-            print(username + "(RAW):" + rawData)           
+            if rawData:
+                rawData = rawData.decode(common.ENCODING)
+                username = "USER" + str(address[1]) 
+                print(username + "(RAW):" + rawData)           
 
-            ## Sending raw data to everyone
-            broadcast = username + ":" + rawData
-            broadcast = rawData.encode(common.ENCODING) 
-            for user in users:
-                if (user != socket):
-                    user.send(broadcast)
+                ## Sending raw data to everyone
+                broadcast = username + ":" + rawData
+                broadcast = rawData.encode(common.ENCODING) 
+                for user in users:
+                    if (user != socket):
+                        user.send(broadcast)
 
-            ## Decrypting 
-            rawData = rawData.encode(common.ENCODING)
-            plaintext = decrypt(rawData,serverInfo)
-            plaintext = b"".join(plaintext)
-            plaintext = plaintext.decode(common.ENCODING)
-            print(username + "(Plaintext):" + plaintext)
+                ## Decrypting 
+                rawData = rawData.encode(common.ENCODING)
+                plaintext = decrypt(rawData,serverInfo)
+                plaintext = b"".join(plaintext)
+                plaintext = plaintext.decode(common.ENCODING)
+                print(username + "(Plaintext):" + plaintext)
         except Exception as e:
             print(f"Server Error: {e}")
-            break
+            socket.close()
             sys.exit()
 
 def connection_handler(sockets, addresses, listeners, serverSocket, serverInfo: server_information):
