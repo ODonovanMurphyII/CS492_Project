@@ -116,9 +116,11 @@ while(1):
     data = input("")
     data = data.encode(common.ENCODING)
     if(data == common.EXIT):
-        print("Quitting")
         clientSocket.send(data)
+        print("Quitting")
+        clientSocket.shutdown(socket.SHUT_RDWR)
         clientSocket.close()  
+        sys.exit()
     data = encrypt(data)  
     data = b"".join(data)
     clientSocket.send(data)

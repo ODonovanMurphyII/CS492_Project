@@ -48,10 +48,13 @@ def receiver(socket, address, users, serverInfo: server_information):
     while(1):
         try:
             ## Server output (Raw)
+            username = "USER" + str(address[1])
             rawData = socket.recv(4095)
-            if rawData:
-                rawData = rawData.decode(common.ENCODING)
-                username = "USER" + str(address[1]) 
+            if not rawData or rawData == common.EXIT or rawData == b'':
+                print(username + " left the chat")
+                break
+            elif rawData:
+                rawData = rawData.decode(common.ENCODING) 
                 print(username + "(RAW):" + rawData)           
 
                 ## Sending raw data to everyone
@@ -70,6 +73,7 @@ def receiver(socket, address, users, serverInfo: server_information):
         except Exception as e:
             print(f"Server Error: {e}")
             ## TODO to maybe I need to restart the server here
+    return
             
 
 def connection_handler(sockets, addresses, listeners, serverSocket, serverInfo: server_information):
