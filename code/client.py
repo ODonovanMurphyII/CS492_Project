@@ -11,15 +11,18 @@ class client:
     def __init__(self):
         self.e = None
         self.n = None
+        self.activeSocket = None
+        self.socketInfo = None
 
 me = client()
 
-def connectionCheck(socket):
+def connectionCheck(activeSocket):
     try:
-        socket.send(common.CONNECTION_CHECK)
+        activeSocket.send(common.CONNECTION_CHECK)
     except: 
         print("server unavailable")
-        clientSocket.close()
+        activeSocket.shutdown(socket.SHUT_RDWR)
+        activeSocket.close()
         sys.exit()
 
 def parse_message(message, client=me):     ## TODO crude. needs error handling
@@ -72,16 +75,16 @@ def print_messages(messages):
         print(string)
     messages.clear()
 
-def read_from_server(socket):
+def read_from_server(activeSocket):
     while(1):
         try:
-            incomingData.append(socket.recv(4095))
+            incomingData.append(activeSocket.recv(4095))
             create_message_list()
             print_messages(chatMessages)
         except Exception as e:
-            print(f"Error reading data: {e}")
-            clientSocket.close()
-            break
+            print(f"Error reading data: {e} quitting")
+            activeSocket.shutdown(socket.SHUT_RDWR)
+            activeSocket.close()
             sys.exit()
 
 ## Can't go any larger than 2 byte blocks for now
@@ -99,29 +102,30 @@ def encrypt(data, client=me):
     
 
 print("Starting Client")
-clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+me.activeSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     ## First we want to connect
-    clientSocket.connect((common.SERVER_IP, common.PORT))
-    socketInfo = clientSocket.getsockname
-    reader = threading.Thread(target=read_from_server,args=(clientSocket,))
+    me.activeSocket.connect((common.SERVER_IP, common.PORT))
+    me.socketInfo = me.activeSocket.getsockname
+    reader = threading.Thread(target=read_from_server,args=(me.activeSocket,))
     reader.daemon = True
     reader.start()
 except Exception as e:
     print(f"Could not connect to server! Exeption:{e} | Shutting down!")
-    clientSocket.close()
+    me.activeSocket.shutdown(socket.SHUT_RDWR)
+    me.activeSocket.close()
     sys.exit()
 
 while(1):
     data = input("")
     data = data.encode(common.ENCODING)
     if(data == common.EXIT):
-        clientSocket.send(data)
+        me.activeSocket.send(data)
         print("Quitting")
-        clientSocket.shutdown(socket.SHUT_RDWR)
-        clientSocket.close()  
+        me.activeSocket.shutdown(socket.SHUT_RDWR)
+        me.activeSocket.close()  
         sys.exit()
     data = encrypt(data)  
     data = b"".join(data)
-    clientSocket.send(data)
+    me.activeSocket.send(data)
 

@@ -44,25 +44,27 @@ def server_init(serverInfo: server_information, keyManager: key.key_manager):
     print("Server running")
     return serverSocket
 
-def receiver(socket, address, users, serverInfo: server_information):
+def receiver(activeSocket: socket, address, users, serverInfo: server_information):
     while(1):
         try:
             ## Server output (Raw)
             username = "USER" + str(address[1])
-            rawData = socket.recv(4095)
+            rawData = activeSocket.recv(4095)
             if not rawData or rawData == common.EXIT or rawData == b'':
                 print(username + " left the chat")
+                activeSocket.shutdown(socket.SHUT_RDWR)
+                activeSocket.close()
                 break
             elif rawData:
                 rawData = rawData.decode(common.ENCODING) 
                 print(username + "(RAW):" + rawData)           
 
-                ## Sending raw data to everyone
-                broadcast = username + ":" + rawData
-                broadcast = rawData.encode(common.ENCODING) 
-                for user in users:
-                    if (user != socket):
-                        user.send(broadcast)
+                # ## Sending raw data to everyone
+                # broadcast = username + ":" + rawData
+                # broadcast = rawData.encode(common.ENCODING) 
+                # for user in users:
+                #     if (user != activeSocket):
+                #         user.send(broadcast)
 
                 ## Decrypting 
                 rawData = rawData.encode(common.ENCODING)
