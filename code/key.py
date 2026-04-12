@@ -8,12 +8,16 @@ class key_manager:
         self.phi = (self.p-1)*(self.q-1)
         self.nAsBytes = self.n.to_bytes(2, 'big')
         self.e = b'\x01\x00\x01'        # 65537
+        self.privateKey = None
         
     def generate_public_key(self):
         publicKey = self.nAsBytes + self.e
         return publicKey
+    
+    def generate_private_key(self):
+        d = pow(int.from_bytes(self.e), -1, self.phi)
+        return (d, self.n)
 
         
         
     
-publicKeyMsg = b'\x01\x05\xA2\x04'

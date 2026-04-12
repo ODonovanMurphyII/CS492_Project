@@ -12,13 +12,27 @@ clientAddresses = []
 class server_information:
     def __init__(self):
         self.public_key = None
+        self.privateKey = None
         self.clientCount = None
 
+def decrypt(data, serverInfo: server_information):
+    d, n = serverInfo.privateKey
+    cipherTextBlocks = []
+    plainTextBlocks = []
+    buffer = None
+    for i in range(0, len(data), 2):
+        cipherTextBlocks.append(data[i:i+2])
+        buffer = int.from_bytes(cipherTextBlocks[-1], 'big')
+        buffer = pow(buffer, d, n)
+        plainTextBlocks.append(buffer.to_bytes(2, 'big'))
+    return plainTextBlocks
 
 def server_init(serverInfo: server_information, keyManager: key.key_manager):
     print("Starting Server")
     serverInfo.public_key = keyManager.generate_public_key()
+    serverInfo.privateKey = keyManager.generate_private_key()
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
     ## First we want to get the server up and running
         serverSocket.bind((common.SERVER_IP, common.PORT))
@@ -30,17 +44,32 @@ def server_init(serverInfo: server_information, keyManager: key.key_manager):
     print("Server running")
     return serverSocket
 
-def receiver(socket, address, users):
+def receiver(socket, address, users, serverInfo: server_information):
     while(1):
-        data = socket.recv(4095)
-        data = data.decode(common.ENCODING)
-        username = "USER" + str(address[1]) 
-        print(username + ":" + data)
-        data = username + ":" + data
-        data = data.encode(common.ENCODING) 
-        for user in users:
-            if (user != socket):
-                user.send(data)
+        try:
+            ## Server output (Raw)
+            rawData = socket.recv(4095)
+            rawData = rawData.decode(common.ENCODING)
+            username = "USER" + str(address[1]) 
+            print(username + "(RAW):" + rawData)           
+
+            ## Sending raw data to everyone
+            broadcast = username + ":" + rawData
+            broadcast = rawData.encode(common.ENCODING) 
+            for user in users:
+                if (user != socket):
+                    user.send(broadcast)
+
+            ## Decrypting 
+            rawData = rawData.encode(common.ENCODING)
+            plaintext = decrypt(rawData,serverInfo)
+            plaintext = b"".join(plaintext)
+            plaintext = plaintext.decode(common.ENCODING)
+            print(username + "(Plaintext):" + plaintext)
+        except Exception as e:
+            print(f"Server Error: {e}")
+            break
+            sys.exit()
 
 def connection_handler(sockets, addresses, listeners, serverSocket, serverInfo: server_information):
     while(1):
@@ -53,7 +82,7 @@ def connection_handler(sockets, addresses, listeners, serverSocket, serverInfo: 
         newConnection.send(common.frame_message(common.MT_PT_CHAT,welcomeMsg))
         publicKeyMsg = common.frame_message(common.MT_KEY,serverInfo.public_key)
         newConnection.send(publicKeyMsg)
-        threading.Thread(target=receiver, args=(clientSockets[-1], clientAddresses[-1], clientSockets), daemon=True).start()
+        threading.Thread(target=receiver, args=(clientSockets[-1], clientAddresses[-1], clientSockets, serverInfo), daemon=True).start()
 
 
 serverInfo = server_information()

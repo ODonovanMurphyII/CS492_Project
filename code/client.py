@@ -79,6 +79,9 @@ def read_from_server(socket):
             print_messages(chatMessages)
         except Exception as e:
             print(f"Error reading data: {e}")
+            clientSocket.close()
+            break
+            sys.exit()
 
 ## Can't go any larger than 2 byte blocks for now
 def encrypt(data, client=me):
