@@ -65,6 +65,7 @@ def create_message_list(incomingData):
         parse_message(messages[i])
         i += 1
     messages.clear()
+    messages.append([])
 
         
 def print_messages(messages):

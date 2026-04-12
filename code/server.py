@@ -4,7 +4,7 @@ import common
 import threading
 import key
 
-## Eventually I will make a client class...for now
+## TODO delete these
 clientSockets = []
 clientListeners = []
 clientAddresses = []
@@ -53,7 +53,7 @@ def server_init(serverInfo: server_information, keyManager: key.key_manager):
 
 def broadcast(clients, serverInfo, message, originAddress):
     ## First, lets get rid of clients that might have left.
-    message = message.encode(common.ENCODING)
+    #message = message.encode(common.ENCODING)
     clients = [soc for soc in clients if soc.socket.fileno() != -1]            ## TODO crude but good enough for the demo
     for client in clients:
         if client.address[1] != originAddress:
@@ -80,6 +80,8 @@ def receiver(activeClient: client, allClients, serverInfo: server_information):
                 plaintext = plaintext.decode(common.ENCODING)
                 print(username + "(Plaintext):" + plaintext)
 
+                #debug code
+                plaintext = common.frame_message(common.MT_CT_CHAT, plaintext)
                 broadcast(allClients, serverInfo, plaintext, activeClient.address[1])
         except Exception as e:
             print(f"Server Error: {e}")
