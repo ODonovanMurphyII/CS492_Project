@@ -22,7 +22,15 @@ def frame_message(messageType: bytes, data):
         data = data.encode('utf-8')
         message = SOH + messageType + data + EOT
     else:
-        message = [SOH, messageType, data, EOT]
+        bytes = [data[i:i+1] for i in range(len(data))]
+        message = []
+        message.append(SOH)
+        message.append(messageType)
+        i = 0
+        while(i < len(bytes)):
+            message.append(bytes[i])
+            i += 1
+        message.append(EOT)
         message = b"".join(message)
     return message 
 

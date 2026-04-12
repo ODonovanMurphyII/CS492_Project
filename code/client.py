@@ -6,7 +6,7 @@ import threading
 messages = [[]]
 chatMessages = []
 specialMessages = []
-incomingData = []
+incomingData = None
 class client:
     def __init__(self):
         self.e = None
@@ -32,33 +32,34 @@ def parse_message(message, client=me):     ## TODO crude. needs error handling
     while message and message[i] != common.EOT: 
         data.append(message[i])
         i += 1
-    if msgType == common.MT_PT_CHAT:
+    if msgType == common.MT_PT_CHAT or msgType == common.MT_CT_CHAT:  ## TODO treating these the same for now
         chatMessages.append(data)
         chatMessages.append([])
-    if msgType == common.MT_KEY:
+    if msgType == common.MT_KEY:                                ## TODO dangerous if another user sends a key message | Server should block these
         specialMessages.append(data)
         specialMessages.append([])
         client.n = data[common.N_MSB_LOC] + data[common.N_LSB_LOC]
         client.n = int.from_bytes(client.n)
         client.e = data[common.E_MSB_LOC] + data[common.E_MIDDLEB_LOC] + data[common.E_LSB_LOC]
         client.e = int.from_bytes(client.e)
+    else:
+        print("Bad packet")
    
 
-def create_message_list():
+def create_message_list(incomingData):
     i = 0
     messageCounter = 0
-    dataLength = len(incomingData[0])
+    dataLength = len(incomingData)
 
     ## Saving all of my messages
     while(i < dataLength):
-        byteBuffer = incomingData[0][i:i+1]
+        byteBuffer = incomingData[i:i+1]
         messages[messageCounter].append(byteBuffer)
         i += 1
         if(byteBuffer == common.EOT):
             messages.append([])
             messageCounter += 1
-    incomingData.clear()
-    incomingData.append([])
+    incomingData = None
     i = 0
     while(i < len(messages)-1):
         parse_message(messages[i])
@@ -75,11 +76,11 @@ def print_messages(messages):
         print(string)
     messages.clear()
 
-def read_from_server(activeSocket):
+def read_from_server(activeSocket, dataBuffer):
     while(1):
         try:
-            incomingData.append(activeSocket.recv(4095))
-            create_message_list()
+            dataBuffer = activeSocket.recv(4095) 
+            create_message_list(dataBuffer)
             print_messages(chatMessages)
         except Exception as e:
             print(f"Error reading data: {e} quitting")
@@ -112,7 +113,7 @@ try:
     ## First we want to connect
     me.activeSocket.connect((common.SERVER_IP, common.PORT))
     me.socketInfo = me.activeSocket.getsockname
-    reader = threading.Thread(target=read_from_server,args=(me.activeSocket,))
+    reader = threading.Thread(target=read_from_server,args=(me.activeSocket,incomingData))
     reader.daemon = True
     reader.start()
 except Exception as e:
@@ -130,6 +131,7 @@ while(1):
         me.activeSocket.shutdown(socket.SHUT_RDWR)
         me.activeSocket.close()  
         sys.exit()
-    data = encrypt(data)  
+    data = encrypt(data) 
+    data = common.frame_message(common.MT_CT_CHAT, data)
     me.activeSocket.send(data)
 
