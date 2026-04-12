@@ -51,10 +51,18 @@ def server_init(serverInfo: server_information, keyManager: key.key_manager):
     print("Server running")
     return serverSocket
 
-def receiver(activeClient: client, serverInfo: server_information):
+def broadcast(clients, serverInfo, message, originAddress):
+    ## First, lets get rid of clients that might have left.
+    message = message.encode(common.ENCODING)
+    clients = [soc for soc in clients if soc.socket.fileno() != -1]            ## TODO crude but good enough for the demo
+    for client in clients:
+        if client.address[1] != originAddress:
+            client.socket.send(message)
+
+def receiver(activeClient: client, allClients, serverInfo: server_information):
     while(1):
         try:
-            ## Server output (Raw)
+            ## Server output
             username = "USER" + str(activeClient.address[1])
             rawData = activeClient.socket.recv(4095)
             if not rawData or rawData == common.EXIT or rawData == b'':
@@ -66,41 +74,40 @@ def receiver(activeClient: client, serverInfo: server_information):
                 rawData = rawData.decode(common.ENCODING) 
                 print(username + "(RAW):" + rawData)           
 
-                # Updating our sockets list before broadcasting data
-                
-
-                # ## Sending raw data to everyone
-                # broadcast = username + ":" + rawData
-                # broadcast = rawData.encode(common.ENCODING) 
-                # for user in users:
-                #     if (user != activeSocket):
-                #         user.send(broadcast)
-
-                ## Decrypting 
                 rawData = rawData.encode(common.ENCODING)
                 plaintext = decrypt(rawData,serverInfo)
                 plaintext = b"".join(plaintext)
                 plaintext = plaintext.decode(common.ENCODING)
                 print(username + "(Plaintext):" + plaintext)
+
+                broadcast(allClients, serverInfo, plaintext, activeClient.address[1])
         except Exception as e:
             print(f"Server Error: {e}")
-            ## TODO to maybe I need to restart the server here
+            activeClient.socket.shutdown(socket.SHUT_RDWR)
+            activeClient.socket.close()
+            activeClient.active = False
+            break
     return
+
+
             
 
 def connection_handler(activeClients: client,  serverSocket, serverInfo: server_information):
     while(1):
+        bufferSocket, bufferAddress = serverSocket.accept()
         activeClients.append(client())
-        activeClients[-1].socket, activeClients[-1].address = serverSocket.accept()
-        clientSockets.append(activeClients[-1].socket)
-        clientAddresses.append(activeClients[-1].address[1])
+        activeClients[-1].socket = bufferSocket
+        activeClients[-1].address = bufferAddress
+        activeClients[-1].active = True
+        #clientSockets.append(activeClients[-1].socket)
+        #clientAddresses.append(activeClients[-1].address[1])
         username = "Client" + str(activeClients[-1].address[1])
         print(username + " Joined!")
         welcomeMsg = "Welcome to the Chatroom " + username + '!'
         activeClients[-1].socket.send(common.frame_message(common.MT_PT_CHAT,welcomeMsg))
         publicKeyMsg = common.frame_message(common.MT_KEY,serverInfo.public_key)
         activeClients[-1].socket.send(publicKeyMsg)
-        threading.Thread(target=receiver, args=(activeClients[-1], serverInfo), daemon=True).start()
+        threading.Thread(target=receiver, args=(activeClients[-1], activeClients, serverInfo), daemon=True).start()
 
 
 serverInfo = server_information()

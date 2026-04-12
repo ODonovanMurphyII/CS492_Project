@@ -92,13 +92,18 @@ def encrypt(data, client=me):
     i = 0
     plaintextBlocks = []
     ciphertextBlocks = []
-    buffer = None
-    for i in range(0, len(data), 2):
-        plaintextBlocks.append(data[i:i+2])
-        buffer = int.from_bytes(plaintextBlocks[-1], 'big')
-        buffer = pow(buffer, client.e, client.n)
-        ciphertextBlocks.append(buffer.to_bytes(2, 'big'))
-    return ciphertextBlocks
+    if not client.e or not client.n:
+        print("Handshake Failed | Sending Plaintext")
+        return data                                    ## TODO come here and setup proper framming
+    else:
+        buffer = None
+        for i in range(0, len(data), 2):
+            plaintextBlocks.append(data[i:i+2])
+            buffer = int.from_bytes(plaintextBlocks[-1], 'big')
+            buffer = pow(buffer, client.e, client.n)
+            ciphertextBlocks.append(buffer.to_bytes(2, 'big'))
+        ciphertextBlocks = b"".join(ciphertextBlocks)
+        return ciphertextBlocks
     
 
 print("Starting Client")
@@ -126,6 +131,5 @@ while(1):
         me.activeSocket.close()  
         sys.exit()
     data = encrypt(data)  
-    data = b"".join(data)
     me.activeSocket.send(data)
 
