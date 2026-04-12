@@ -15,6 +15,13 @@ class server_information:
         self.privateKey = None
         self.clientCount = None
 
+class client:
+    def __init__(self):
+        self.socket = None
+        self.address = None
+        self.active = False
+        self.listener = None # Might link the listener here as well
+
 def decrypt(data, serverInfo: server_information):
     d, n = serverInfo.privateKey
     cipherTextBlocks = []
@@ -44,20 +51,23 @@ def server_init(serverInfo: server_information, keyManager: key.key_manager):
     print("Server running")
     return serverSocket
 
-def receiver(activeSocket: socket, address, users, serverInfo: server_information):
+def receiver(activeClient: client, serverInfo: server_information):
     while(1):
         try:
             ## Server output (Raw)
-            username = "USER" + str(address[1])
-            rawData = activeSocket.recv(4095)
+            username = "USER" + str(activeClient.address[1])
+            rawData = activeClient.socket.recv(4095)
             if not rawData or rawData == common.EXIT or rawData == b'':
                 print(username + " left the chat")
-                activeSocket.shutdown(socket.SHUT_RDWR)
-                activeSocket.close()
+                activeClient.socket.shutdown(socket.SHUT_RDWR)
+                activeClient.socket.close()
                 break
             elif rawData:
                 rawData = rawData.decode(common.ENCODING) 
                 print(username + "(RAW):" + rawData)           
+
+                # Updating our sockets list before broadcasting data
+                
 
                 # ## Sending raw data to everyone
                 # broadcast = username + ":" + rawData
@@ -78,24 +88,26 @@ def receiver(activeSocket: socket, address, users, serverInfo: server_informatio
     return
             
 
-def connection_handler(sockets, addresses, listeners, serverSocket, serverInfo: server_information):
+def connection_handler(activeClients: client,  serverSocket, serverInfo: server_information):
     while(1):
-        newConnection, newAddress = serverSocket.accept()
-        clientSockets.append(newConnection)
-        clientAddresses.append(newAddress)
-        username = "Client" + str(clientAddresses[-1][1])
+        activeClients.append(client())
+        activeClients[-1].socket, activeClients[-1].address = serverSocket.accept()
+        clientSockets.append(activeClients[-1].socket)
+        clientAddresses.append(activeClients[-1].address[1])
+        username = "Client" + str(activeClients[-1].address[1])
         print(username + " Joined!")
         welcomeMsg = "Welcome to the Chatroom " + username + '!'
-        newConnection.send(common.frame_message(common.MT_PT_CHAT,welcomeMsg))
+        activeClients[-1].socket.send(common.frame_message(common.MT_PT_CHAT,welcomeMsg))
         publicKeyMsg = common.frame_message(common.MT_KEY,serverInfo.public_key)
-        newConnection.send(publicKeyMsg)
-        threading.Thread(target=receiver, args=(clientSockets[-1], clientAddresses[-1], clientSockets, serverInfo), daemon=True).start()
+        activeClients[-1].socket.send(publicKeyMsg)
+        threading.Thread(target=receiver, args=(activeClients[-1], serverInfo), daemon=True).start()
 
 
 serverInfo = server_information()
 keyManager = key.key_manager()
+activeClients = []
 serverSocket = server_init(serverInfo, keyManager)
-thread_connection_handler = threading.Thread(connection_handler(clientSockets, clientAddresses, clientListeners, serverSocket, serverInfo))
+thread_connection_handler = threading.Thread(connection_handler(activeClients, serverSocket, serverInfo))
 thread_connection_handler.daemon = True
 thread_connection_handler.start()
 
