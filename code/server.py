@@ -11,7 +11,7 @@ clientAddresses = []
 
 class server_information:
     def __init__(self):
-        self.public_key = None
+        self.publicKey = None
         self.privateKey = None
         self.clientCount = None
 
@@ -21,6 +21,27 @@ class client:
         self.address = None
         self.active = False
         self.listener = None # Might link the listener here as well
+        self.timeout = 5
+
+def handshake(activeClient: client, serverInfo: server_information):
+    activeClient.settimeout(activeClient.timeout)
+    connection = False
+    try:
+        clientData = activeClient.socket.recv()  
+        if clientData == common.SYN:
+            msg = common.frame_message(common.MT_PT_CHAT, common.ACK)
+            activeClient.send(msg)
+            msg = common.frame_message(common.MT_PT_CHAT, serverInfo.publicKey)
+            activeClient.send(msg)
+            clientData = activeClient.socket.recv()   ## Waiting for clients public key
+            connection = True
+            return connection
+    except socket.timeout:
+        return connection
+
+
+
+
 
 def decrypt(data, serverInfo: server_information):
     d, n = serverInfo.privateKey
@@ -36,7 +57,7 @@ def decrypt(data, serverInfo: server_information):
 
 def server_init(serverInfo: server_information, keyManager: key.key_manager):
     print("Starting Server")
-    serverInfo.public_key = keyManager.generate_public_key()
+    serverInfo.publicKey = keyManager.generate_public_key()
     serverInfo.privateKey = keyManager.generate_private_key()
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -96,20 +117,19 @@ def receiver(activeClient: client, allClients, serverInfo: server_information):
 
 def connection_handler(activeClients: client,  serverSocket, serverInfo: server_information):
     while(1):
-        bufferSocket, bufferAddress = serverSocket.accept()
-        activeClients.append(client())
-        activeClients[-1].socket = bufferSocket
-        activeClients[-1].address = bufferAddress
-        activeClients[-1].active = True
-        #clientSockets.append(activeClients[-1].socket)
-        #clientAddresses.append(activeClients[-1].address[1])
-        username = "Client" + str(activeClients[-1].address[1])
-        print(username + " Joined!")
-        welcomeMsg = "Welcome to the Chatroom " + username + '!'
-        activeClients[-1].socket.send(common.frame_message(common.MT_PT_CHAT,welcomeMsg))
-        publicKeyMsg = common.frame_message(common.MT_KEY,serverInfo.public_key)
-        activeClients[-1].socket.send(publicKeyMsg)
-        threading.Thread(target=receiver, args=(activeClients[-1], activeClients, serverInfo), daemon=True).start()
+        newClient, address = serverSocket.accept()
+        if(handshake(newClient)):
+            activeClients.append(client())
+            activeClients[-1].socket = newClient
+            activeClients[-1].address = address
+            activeClients[-1].active = True
+            username = "Client" + str(activeClients[-1].address[1])
+            print(username + " Joined!")
+            welcomeMsg = "Welcome to the Chatroom " + username + '!'
+            activeClients[-1].socket.send(common.frame_message(common.MT_PT_CHAT,welcomeMsg))
+            publicKeyMsg = common.frame_message(common.MT_KEY,serverInfo.publicKey)
+            activeClients[-1].socket.send(publicKeyMsg)
+            threading.Thread(target=receiver, args=(activeClients[-1], activeClients, serverInfo), daemon=True).start()
 
 
 serverInfo = server_information()
