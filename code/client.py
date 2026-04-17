@@ -9,12 +9,38 @@ specialMessages = []
 incomingData = None
 class client:
     def __init__(self):
-        self.e = None
-        self.n = None
-        self.activeSocket = None
+        self.serverE = None
+        self.serverN = None
+        self.clientE = None
+        self.clientN = None
+        self.socket = None
         self.socketInfo = None
 
 me = client()
+
+def handshake(me: client):
+    msg = common.frame_message(common.MT_PT_CHAT, common.SYN)
+    me.socket.send(msg)
+    me.socket.settimeout(10)            # wait ten seconds for the server to respond
+    connection = False  
+    try:
+        serverData = me.socket.recv()  
+        create_message_list(serverData)
+        if(any(common.ACK in packets for packets in chatMessages)):
+            ## We're connected send your public key
+            if(specialMessages[-1]):
+                parse_message(specialMessages[-1],me)
+                if me.serverE is not None and me.n is not None:
+                    msg = common.frame_message(common.MT_KEY, me.clientE+me.clientN)
+                    me.socket.send()
+                    connection = True
+                    return connection
+    except me.socket.timeout:
+        print("Handshake Failed. Disconnecting")
+        me.socket.shutdown(socket.SHUT_RDWR)
+        me.socket.close()
+        sys.exit()
+  
 
 def connectionCheck(activeSocket):
     try:
@@ -38,10 +64,10 @@ def parse_message(message, client=me):     ## TODO crude. needs error handling
     if msgType == common.MT_KEY:                                ## TODO dangerous if another user sends a key message | Server should block these
         specialMessages.append(data)
         specialMessages.append([])
-        client.n = data[common.N_MSB_LOC] + data[common.N_LSB_LOC]
-        client.n = int.from_bytes(client.n)
-        client.e = data[common.E_MSB_LOC] + data[common.E_MIDDLEB_LOC] + data[common.E_LSB_LOC]
-        client.e = int.from_bytes(client.e)
+        client.serverN = data[common.N_MSB_LOC] + data[common.N_LSB_LOC]
+        client.serverN = int.from_bytes(client.serverN)
+        client.serverE = data[common.E_MSB_LOC] + data[common.E_MIDDLEB_LOC] + data[common.E_LSB_LOC]
+        client.serverE = int.from_bytes(client.serverE)
     else:
         print("Bad packet")
    
@@ -94,7 +120,7 @@ def encrypt(data, client=me):
     i = 0
     plaintextBlocks = []
     ciphertextBlocks = []
-    if not client.e or not client.n:
+    if not client.serverE or not client.serverN:
         print("Handshake Failed | Sending Plaintext")
         return data                                    ## TODO come here and setup proper framming
     else:
@@ -102,37 +128,46 @@ def encrypt(data, client=me):
         for i in range(0, len(data), 2):
             plaintextBlocks.append(data[i:i+2])
             buffer = int.from_bytes(plaintextBlocks[-1], 'big')
-            buffer = pow(buffer, client.e, client.n)
+            buffer = pow(buffer, client.serverE, client.serverN)
             ciphertextBlocks.append(buffer.to_bytes(2, 'big'))
         ciphertextBlocks = b"".join(ciphertextBlocks)
         return ciphertextBlocks
     
 
 print("Starting Client")
-me.activeSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+if(len(sys.argv) < 3):
+    print("Missing public key information. Quiting")
+    sys.exit(1)
+me.clientE = int(sys.argv[1]).to_bytes
+me.clientN = int(sys.argv[2]).to_bytes
+me.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     ## First we want to connect
-    me.activeSocket.connect((common.SERVER_IP, common.PORT))
-    me.socketInfo = me.activeSocket.getsockname
-    reader = threading.Thread(target=read_from_server,args=(me.activeSocket,incomingData))
-    reader.daemon = True
-    reader.start()
+    me.socket.connect((common.SERVER_IP, common.PORT))
+    me.socketInfo = me.socket.getsockname
+    if(handshake(me)):
+        reader = threading.Thread(target=read_from_server,args=(me.socket,incomingData))
+        reader.daemon = True
+        reader.start()
+    else:
+        print("Handshake failed. Quitting")
+        sys.exit()
 except Exception as e:
     print(f"Could not connect to server! Exeption:{e} | Shutting down!")
-    me.activeSocket.shutdown(socket.SHUT_RDWR)
-    me.activeSocket.close()
+    me.socket.shutdown(socket.SHUT_RDWR)
+    me.socket.close()
     sys.exit()
 
 while(1):
     data = input("")
     data = data.encode(common.ENCODING)
     if(data == common.EXIT):
-        me.activeSocket.send(data)
+        me.socket.send(data)
         print("Quitting")
-        me.activeSocket.shutdown(socket.SHUT_RDWR)
-        me.activeSocket.close()  
+        me.socket.shutdown(socket.SHUT_RDWR)
+        me.socket.close()  
         sys.exit()
     data = encrypt(data) 
     data = common.frame_message(common.MT_CT_CHAT, data)
-    me.activeSocket.send(data)
+    me.socket.send(data)
 
