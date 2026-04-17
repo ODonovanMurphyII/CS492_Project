@@ -33,7 +33,7 @@ def handshake(activeClient: client, serverInfo: server_information):
             msg = common.frame_message(common.MT_PT_CHAT, common.ACK)
             activeClient.send(msg)
             msg = None
-            msg = common.frame_message(common.MT_PT_CHAT, serverInfo.publicKey)
+            msg = common.frame_message(common.MT_KEY, serverInfo.publicKey)
             activeClient.send(msg)
             clientData = activeClient.recv(common.RECEIVE_LEN)   ## Waiting for clients public key
             activeClient.publicKeyBytes = clientData ## TODO need to strip data out of frame
