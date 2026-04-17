@@ -19,21 +19,24 @@ class client:
     def __init__(self):
         self.socket = None
         self.address = None
+        self.publicKeyBytes = None
         self.active = False
         self.listener = None # Might link the listener here as well
-        self.timeout = 5
+        self.timeout = 300
 
 def handshake(activeClient: client, serverInfo: server_information):
     activeClient.settimeout(activeClient.timeout)
     connection = False
     try:
-        clientData = activeClient.socket.recv()  
-        if clientData == common.SYN:
+        clientData = activeClient.recv(common.RECEIVE_LEN)  
+        if common.SYN in clientData:
             msg = common.frame_message(common.MT_PT_CHAT, common.ACK)
             activeClient.send(msg)
+            msg = None
             msg = common.frame_message(common.MT_PT_CHAT, serverInfo.publicKey)
             activeClient.send(msg)
-            clientData = activeClient.socket.recv()   ## Waiting for clients public key
+            clientData = activeClient.recv(common.RECEIVE_LEN)   ## Waiting for clients public key
+            activeClient.publicKeyBytes = clientData ## TODO need to strip data out of frame
             connection = True
             return connection
     except socket.timeout:
@@ -88,7 +91,7 @@ def receiver(activeClient: client, allClients, serverInfo: server_information):
             rawData = activeClient.socket.recv(4095)
             if not rawData or rawData == common.EXIT or rawData == b'':
                 print(username + " left the chat")
-                activeClient.socket.shutdown(socket.SHUT_RDWR)
+                activeClient.socket.a
                 activeClient.socket.close()
                 break
             elif rawData:
@@ -118,7 +121,8 @@ def receiver(activeClient: client, allClients, serverInfo: server_information):
 def connection_handler(activeClients: client,  serverSocket, serverInfo: server_information):
     while(1):
         newClient, address = serverSocket.accept()
-        if(handshake(newClient)):
+        if(handshake(newClient, serverInfo)):
+            newClient.settimeout(None)
             activeClients.append(client())
             activeClients[-1].socket = newClient
             activeClients[-1].address = address

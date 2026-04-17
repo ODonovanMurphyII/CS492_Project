@@ -21,14 +21,14 @@ me = client()
 def handshake(me: client):
     msg = common.frame_message(common.MT_PT_CHAT, common.SYN)
     me.socket.send(msg)
-    me.socket.settimeout(10)            # wait ten seconds for the server to respond
+    me.socket.settimeout(300)            # wait ten seconds for the server to respond
     connection = False  
     try:
-        serverData = me.socket.recv()  
+        serverData = me.socket.recv(common.RECEIVE_LEN)  
         create_message_list(serverData)
         if(any(common.ACK in packets for packets in chatMessages)):
             ## We're connected send your public key
-            if(specialMessages[-1]):
+            if(specialMessages[-1] is not None):
                 parse_message(specialMessages[-1],me)
                 if me.serverE is not None and me.n is not None:
                     msg = common.frame_message(common.MT_KEY, me.clientE+me.clientN)
@@ -61,7 +61,7 @@ def parse_message(message, client=me):     ## TODO crude. needs error handling
     if msgType == common.MT_PT_CHAT or msgType == common.MT_CT_CHAT:  ## TODO treating these the same for now
         chatMessages.append(data)
         chatMessages.append([])
-    if msgType == common.MT_KEY:                                ## TODO dangerous if another user sends a key message | Server should block these
+    elif msgType == common.MT_KEY:                                ## TODO dangerous if another user sends a key message | Server should block these
         specialMessages.append(data)
         specialMessages.append([])
         client.serverN = data[common.N_MSB_LOC] + data[common.N_LSB_LOC]
@@ -146,6 +146,7 @@ try:
     me.socket.connect((common.SERVER_IP, common.PORT))
     me.socketInfo = me.socket.getsockname
     if(handshake(me)):
+        me.socket.settimeout(None)
         reader = threading.Thread(target=read_from_server,args=(me.socket,incomingData))
         reader.daemon = True
         reader.start()
