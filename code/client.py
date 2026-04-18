@@ -5,7 +5,8 @@ import threading
 import math
 
 messages = [[]]
-chatMessages = []
+plaintextMessages = []
+cipherTextMessages = []
 specialMessages = []
 incomingData = None
 class client:
@@ -14,6 +15,7 @@ class client:
         self.serverN = None
         self.clientE = None
         self.clientN = None
+        self.clientD = None
         self.clientEBytes = None
         self.clientNBytes = None
         self.socket = None
@@ -29,7 +31,7 @@ def handshake(me: client):
     try:
         serverData = me.socket.recv(common.RECEIVE_LEN)  
         create_message_list(serverData)
-        if(any(common.ACK in packets for packets in chatMessages)):
+        if(any(common.ACK in packets for packets in plaintextMessages)):
             ## We're connected send your public key
             if(specialMessages[-1] is not None):
                 if me.serverE is not None and me.serverN is not None:
@@ -62,9 +64,12 @@ def parse_message(message, client=me):     ## TODO crude. needs error handling
     while message and message[i] != common.EOT: 
         data.append(message[i])
         i += 1
-    if msgType == common.MT_PT_CHAT or msgType == common.MT_CT_CHAT:  ## TODO treating these the same for now
-        chatMessages.append(data)
-        chatMessages.append([])
+    if msgType == common.MT_PT_CHAT:
+        plaintextMessages.append(data)
+        plaintextMessages.append([])
+    elif msgType == common.MT_CT_CHAT:
+        cipherTextMessages.append(data)
+        cipherTextMessages.append([])
     elif msgType == common.MT_KEY:                                ## TODO dangerous if another user sends a key message | Server should block these
         specialMessages.append(data)
         client.serverN = data[common.N_MSB_LOC] + data[common.N_LSB_LOC]
@@ -97,26 +102,43 @@ def create_message_list(incomingData):
     messages.clear()
     messages.append([])
 
+def decrypt(me: client, data):
+    d = me.clientD
+    n = me.clientN
+    cipherTextBlocks = []
+    plainTextBlocks = []
+    buffer = None
+    data = b''.join(data)
+    for i in range(0, len(data), 2):
+        cipherTextBlocks.append(data[i:i+2])
+        buffer = int.from_bytes(cipherTextBlocks[-1], 'big')
+        buffer = pow(buffer, d, n)
+        plainTextBlocks.append(buffer.to_bytes(2, 'big'))
+    return plainTextBlocks
         
-def print_messages(messages):
+def print_messages(messages, me:client, cipherText):
     if(messages):
         messages.pop()      # pop off the empty row
     while(messages):
         string = messages.pop()
+        if cipherText:
+            string = decrypt(me, string)
         string = b"".join(string).decode(common.ENCODING)
         print(string)
     messages.clear()
 
-def read_from_server(activeSocket, dataBuffer):
+
+def read_from_server(me:client, dataBuffer):
     while(1):
         try:
-            dataBuffer = activeSocket.recv(4095) 
+            dataBuffer = me.socket.recv(4095) 
             create_message_list(dataBuffer)
-            print_messages(chatMessages)
+            print_messages(plaintextMessages, me, False)
+            print_messages(cipherTextMessages, me, True)
         except Exception as e:
             print(f"Error reading data: {e} quitting")
-            activeSocket.shutdown(socket.SHUT_RDWR)
-            activeSocket.close()
+            me.socket.shutdown(socket.SHUT_RDWR)
+            me.socket.close()
             sys.exit()
 
 ## Can't go any larger than 2 byte blocks for now
@@ -158,7 +180,7 @@ try:
     me.socketInfo = me.socket.getsockname
     if(handshake(me)):
         me.socket.settimeout(None)
-        reader = threading.Thread(target=read_from_server,args=(me.socket,incomingData))
+        reader = threading.Thread(target=read_from_server,args=(me,incomingData))
         reader.daemon = True
         reader.start()
     else:

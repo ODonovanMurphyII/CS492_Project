@@ -150,7 +150,7 @@ def connection_handler(activeClients: client,  serverSocket, serverInfo: server_
             activeClients[-1].socket.settimeout(None)
             activeClients[-1].address = address
             activeClients[-1].active = True
-            username = "Client" + str(activeClients[-1].address[1])
+            username = "User" + str(activeClients[-1].address[1])
             print(username + " Joined!")
             welcomeMsg = "Welcome to the Chatroom " + username + '!'
             activeClients[-1].socket.send(common.frame_message(common.MT_PT_CHAT,welcomeMsg))
