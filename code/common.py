@@ -22,14 +22,17 @@ ENCODING = 'latin-1'
 SOCKET_TIMEOUT = 600
 
 def frame_message(messageType: bytes, data):
+    dataLen = len(data)
+    dataLen = dataLen.to_bytes(2, 'big')
     if isinstance(data, str):
         data = data.encode('utf-8')
-        message = SOH + messageType + data + EOT
+        message = SOH + messageType + dataLen + data + EOT
     else:
         bytes = [data[i:i+1] for i in range(len(data))]
         message = []
         message.append(SOH)
         message.append(messageType)
+        message.append(dataLen)
         i = 0
         while(i < len(bytes)):
             message.append(bytes[i])
@@ -38,6 +41,20 @@ def frame_message(messageType: bytes, data):
         message = b"".join(message)
     return message 
 
+def unframe_message(data):
+    msgType = data[1]
+    dataLen = data[2:4]
+    dataLen = int.from_bytes(dataLen)
+    msg = bytearray()
+
+    i = 4
+    j = 0
+    while(j < dataLen):
+        msg.append(data[i])
+        j += 1
+        i += 1
+
+    return msg
 
 
 

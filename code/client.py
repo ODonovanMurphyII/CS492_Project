@@ -58,12 +58,10 @@ def connectionCheck(activeSocket):
         sys.exit()
 
 def parse_message(message, client=me):     ## TODO crude. needs error handling
-    msgType = message[1]
-    data = []
-    i = 2
-    while message and message[i] != common.EOT: 
-        data.append(message[i])
-        i += 1
+    msgType = message[2]
+    message = b''.join(message)
+    data = bytearray()
+    data = common.unframe_message(message)
     if msgType == common.MT_PT_CHAT:
         plaintextMessages.append(data)
         plaintextMessages.append([])
