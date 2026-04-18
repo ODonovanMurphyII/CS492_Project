@@ -1,0 +1,7 @@
+Client Key Values
+
+p = 151
+q = 229
+n = 34579
+e = 17
+d = 20177
