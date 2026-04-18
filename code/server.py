@@ -96,13 +96,12 @@ def receiver(activeClient: client, allClients, serverInfo: server_information):
             rawData = activeClient.socket.recv(4095)
             if not rawData or rawData == common.EXIT or rawData == b'':
                 print(username + " left the chat")
-                activeClient.socket.a
                 activeClient.socket.close()
                 break
             elif rawData:
                 ## TODO strip the framming
                 rawData = rawData.decode(common.ENCODING) 
-                print(username + "(RAW):" + rawData)           
+                print(username + "(Ciphertext):" + rawData)           
 
                 rawData = rawData.encode(common.ENCODING)
                 plaintext = decrypt(rawData,serverInfo)
