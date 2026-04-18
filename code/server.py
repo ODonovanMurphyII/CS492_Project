@@ -63,6 +63,22 @@ def decrypt(data, serverInfo: server_information):
         plainTextBlocks.append(buffer.to_bytes(2, 'big'))
     return plainTextBlocks
 
+def encrypt(data, client: client):
+    i = 0
+    plaintextBlocks = []
+    ciphertextBlocks = []
+    e = client.publicKeyBytes[0:2]
+    n = client.publicKeyBytes[2:4]
+    e = int.from_bytes(e,'big')
+    n = int.from_bytes(n,'big')
+    for i in range(0, len(data), 2):
+        plaintextBlocks.append(data[i:i+2])
+        buffer = int.from_bytes(plaintextBlocks[-1], 'big')
+        buffer = pow(buffer, e, n)
+        ciphertextBlocks.append(buffer.to_bytes(2, 'big'))
+    ciphertextBlocks = b"".join(ciphertextBlocks)
+    return ciphertextBlocks
+
 def server_init(serverInfo: server_information, keyManager: key.key_manager):
     print("Starting Server")
     serverInfo.publicKey = keyManager.generate_public_key()
@@ -86,6 +102,8 @@ def broadcast(clients, serverInfo, message, originAddress):
     clients = [soc for soc in clients if soc.socket.fileno() != -1]            ## TODO crude but good enough for the demo
     for client in clients:
         if client.address[1] != originAddress:
+            message = encrypt(message, client)
+            message = common.frame_message(common.MT_CT_CHAT, message)
             client.socket.send(message)
 
 def receiver(activeClient: client, allClients, serverInfo: server_information):
