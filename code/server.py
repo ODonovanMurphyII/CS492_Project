@@ -22,25 +22,34 @@ class client:
         self.publicKeyBytes = None
         self.active = False
         self.listener = None # Might link the listener here as well
-        self.timeout = common.SOCKET_TIMEOUT
+
+def parse_message(message):
+    i = 2
+    data = bytearray()
+    rawBytes = bytes(message)
+    while(rawBytes[i] != common.EOT and i < len(rawBytes)-2):
+        data.append(rawBytes[i])
+        i += 1
+    return data
 
 def handshake(activeClient: client, serverInfo: server_information):
-    activeClient.settimeout(activeClient.timeout)
+    activeClient.socket.settimeout(common.SOCKET_TIMEOUT)
     connection = False
     try:
-        clientData = activeClient.recv(common.RECEIVE_LEN)  
-        if common.SYN in clientData:
-            msg = common.frame_message(common.MT_PT_CHAT, common.ACK)
-            activeClient.send(msg)
-            msg = None
+        clientData = activeClient.socket.recv(common.RECEIVE_LEN)  
+        if common.SYN in clientData: # Client is trying to connect
+            msg = common.frame_message(common.MT_PT_CHAT, common.ACK)  
+            activeClient.socket.send(msg)
             msg = common.frame_message(common.MT_KEY, serverInfo.publicKey)
-            activeClient.send(msg)
-            clientData = activeClient.recv(common.RECEIVE_LEN)   ## Waiting for clients public key
-            activeClient.publicKeyBytes = clientData ## TODO need to strip data out of frame
+            activeClient.socket.send(msg)
+            clientData = activeClient.socket.recv(common.RECEIVE_LEN)   ## Waiting for clients public key
+            activeClient.publicKeyBytes = parse_message(clientData)
             connection = True
             return connection
     except socket.timeout:
         return connection
+    except Exception as e:
+        print(f"Connection Failure: {e}")
 
 
 
@@ -120,11 +129,10 @@ def receiver(activeClient: client, allClients, serverInfo: server_information):
 
 def connection_handler(activeClients: client,  serverSocket, serverInfo: server_information):
     while(1):
-        newClient, address = serverSocket.accept()
-        if(handshake(newClient, serverInfo)):
-            newClient.settimeout(None)
-            activeClients.append(client())
-            activeClients[-1].socket = newClient
+        activeClients.append(client())
+        activeClients[-1].socket, address = serverSocket.accept()
+        if(handshake(activeClients[-1], serverInfo)):
+            activeClients[-1].socket.settimeout(None)
             activeClients[-1].address = address
             activeClients[-1].active = True
             username = "Client" + str(activeClients[-1].address[1])
@@ -134,7 +142,8 @@ def connection_handler(activeClients: client,  serverSocket, serverInfo: server_
             publicKeyMsg = common.frame_message(common.MT_KEY,serverInfo.publicKey)
             activeClients[-1].socket.send(publicKeyMsg)
             threading.Thread(target=receiver, args=(activeClients[-1], activeClients, serverInfo), daemon=True).start()
-
+        else:
+            activeClients.pop()     ## No connection. Get rid of the dead client
 
 serverInfo = server_information()
 keyManager = key.key_manager()

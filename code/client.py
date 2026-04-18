@@ -38,8 +38,8 @@ def handshake(me: client):
                     me.socket.send(msg)
                     connection = True
                     return connection
-    except me.socket.timeout:
-        print("Handshake Failed. Disconnecting")
+    except Exception as e:
+        print(f"Handshake Failed: {e}. Disconnecting")
         me.socket.shutdown(socket.SHUT_RDWR)
         me.socket.close()
         sys.exit()
@@ -66,11 +66,11 @@ def parse_message(message, client=me):     ## TODO crude. needs error handling
         chatMessages.append([])
     elif msgType == common.MT_KEY:                                ## TODO dangerous if another user sends a key message | Server should block these
         specialMessages.append(data)
-        specialMessages.append([])
         client.serverN = data[common.N_MSB_LOC] + data[common.N_LSB_LOC]
         client.serverN = int.from_bytes(client.serverN)
         client.serverE = data[common.E_MSB_LOC] + data[common.E_MIDDLEB_LOC] + data[common.E_LSB_LOC]
         client.serverE = int.from_bytes(client.serverE)
+        specialMessages.append([])
     else:
         print("Bad packet")
    
