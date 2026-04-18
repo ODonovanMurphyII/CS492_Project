@@ -202,6 +202,6 @@ while(1):
         me.socket.close()  
         sys.exit()
     data = encrypt(data) 
-    data = common.frame_message(common.MT_CT_CHAT, data)
+    #data = common.frame_message(common.MT_CT_CHAT, data)
     me.socket.send(data)
 

@@ -105,6 +105,7 @@ def broadcast(clients, serverInfo, message, originAddress):
     clients = [soc for soc in clients if soc.socket.fileno() != -1]            ## TODO crude but good enough for the demo
     for client in clients:
         if client.address[1] != originAddress:
+            
             message = encrypt(message, client)
             message = common.frame_message(common.MT_CT_CHAT, message)
             client.socket.send(message)
@@ -114,20 +115,23 @@ def receiver(activeClient: client, allClients, serverInfo: server_information):
         try:
             ## Server output
             username = "USER" + str(activeClient.address[1])
-            rawData = activeClient.socket.recv(4095)
-            if not rawData or rawData == common.EXIT or rawData == b'':
+            cipherText = activeClient.socket.recv(4095)
+            if not cipherText or cipherText == common.EXIT or cipherText == b'':
                 print(username + " left the chat")
                 activeClient.socket.close()
                 break
-            elif rawData:
+            elif cipherText:
                 ## TODO strip the framming
-                rawData = rawData.decode(common.ENCODING) 
-                print(username + "(Ciphertext):" + rawData)           
+                ##rawData = rawData[1:-1]
+                #cipherText = cipherText.decode(common.ENCODING) 
+                #print(username + "(Ciphertext):" + cipherText)           
 
-                rawData = rawData.encode(common.ENCODING)
-                plaintext = decrypt(rawData,serverInfo)
+                #cipherText = cipherText.encode(common.ENCODING)
+                plaintext = decrypt(cipherText,serverInfo)
                 plaintext = b"".join(plaintext)
                 plaintext = plaintext.decode(common.ENCODING)
+                cipherText = cipherText.decode(common.ENCODING)
+                print(username + "(ciphertext):" + cipherText)
                 print(username + "(Plaintext):" + plaintext)
 
                 #debug code
