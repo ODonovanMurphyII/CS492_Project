@@ -140,16 +140,16 @@ def encrypt(data, client=me):
 
 print("Starting Client")
 print("Demo limited to 16-bit key values")
-primeP = input("Please enter a prime number between 2 and 251")
-primeQ = input("Please enter a prime number between 2 and 251 not equal to the first entered prime")
+primeP = int(input("Please enter a prime number between 181 and 251:"))
+primeQ = int(input("Please enter a prime number between 181 and 251 not equal to the first entered prime:"))
 print("Generating Public and Private Keys....")
 me.clientN = primeP * primeQ
 phi = (primeP-1)*(primeQ-1)
-me.clientD = pow(me.clientE,-1,phi)
 possibleE = 3
 while math.gcd(possibleE,phi) != 1:
     possibleE += 2
 me.clientE = possibleE
+me.clientD = pow(me.clientE,-1,phi)
 
 me.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
