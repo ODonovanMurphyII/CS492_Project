@@ -3,6 +3,8 @@ import common
 import sys
 import threading
 import math
+import time
+import traceback
 
 messages = [[]]
 plaintextMessages = []
@@ -23,7 +25,7 @@ class client:
 
 me = client()
 
-def handshake(me: client):
+def handshake(me: client, retryCount):
     msg = common.frame_message(common.MT_PT_CHAT, common.SYN)
     me.socket.send(msg)
     me.socket.settimeout(common.SOCKET_TIMEOUT)            
@@ -33,16 +35,27 @@ def handshake(me: client):
         create_message_list(serverData)
         if(any(common.ACK in packets for packets in plaintextMessages)):
             ## We're connected send your public key
-            if(specialMessages[-1] is not None):
+            if(specialMessages):
                 if me.serverE is not None and me.serverN is not None:
                     me.clientEBytes = me.clientE.to_bytes(2, 'big')
                     me.clientNBytes = me.clientN.to_bytes(2, 'big')
                     msg = common.frame_message(common.MT_KEY, me.clientEBytes + me.clientNBytes)
                     me.socket.send(msg)
                     connection = True
+                    specialMessages.clear()
                     return connection
+            else:
+                retryCount += 1
+                if retryCount < 3:
+                    time.sleep(0.500)
+                    print("Attempting Handshake Again")
+                    handshake(me, retryCount)
+                else: 
+                    print("Handshake Failed")
+                    return
     except Exception as e:
         print(f"Handshake Failed: {e}. Disconnecting")
+        traceback.print_exc()
         me.socket.shutdown(socket.SHUT_RDWR)
         me.socket.close()
         sys.exit()
@@ -64,6 +77,8 @@ def parse_message(message, client=me):     ## TODO crude. needs error handling
     while message and message[i] != common.EOT: 
         data.append(message[i])
         i += 1
+        if(i >= len(message)):
+            break;                          # We missed the EOT somehow
     if msgType == common.MT_PT_CHAT:
         plaintextMessages.append(data)
         plaintextMessages.append([])
@@ -137,6 +152,7 @@ def read_from_server(me:client, dataBuffer):
             print_messages(cipherTextMessages, me, True)
         except Exception as e:
             print(f"Error reading data: {e} quitting")
+            traceback.print_exc()
             me.socket.shutdown(socket.SHUT_RDWR)
             me.socket.close()
             sys.exit()
@@ -177,8 +193,9 @@ me.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     ## First we want to connect
     me.socket.connect((common.SERVER_IP, common.PORT))
+    time.sleep(0.1)
     me.socketInfo = me.socket.getsockname
-    if(handshake(me)):
+    if(handshake(me, 0)):
         me.socket.settimeout(None)
         reader = threading.Thread(target=read_from_server,args=(me,incomingData))
         reader.daemon = True

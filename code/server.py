@@ -105,7 +105,7 @@ def broadcast(clients, serverInfo, message, originAddress):
     clients = [soc for soc in clients if soc.socket.fileno() != -1]            ## TODO crude but good enough for the demo
     for client in clients:
         if client.address[1] != originAddress:
-            
+
             message = encrypt(message, client)
             message = common.frame_message(common.MT_CT_CHAT, message)
             client.socket.send(message)
@@ -135,6 +135,7 @@ def receiver(activeClient: client, allClients, serverInfo: server_information):
                 print(username + "(Plaintext):" + plaintext)
 
                 #debug code
+                plaintext = username + ":" + plaintext
                 plaintext = common.frame_message(common.MT_CT_CHAT, plaintext)
                 broadcast(allClients, serverInfo, plaintext, activeClient.address[1])
         except Exception as e:
