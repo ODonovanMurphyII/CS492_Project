@@ -51,10 +51,6 @@ def handshake(activeClient: client, serverInfo: server_information):
     except Exception as e:
         print(f"Connection Failure: {e}")
 
-
-
-
-
 def decrypt(data, serverInfo: server_information):
     d, n = serverInfo.privateKey
     cipherTextBlocks = []
@@ -104,6 +100,7 @@ def receiver(activeClient: client, allClients, serverInfo: server_information):
                 activeClient.socket.close()
                 break
             elif rawData:
+                ## TODO strip the framming
                 rawData = rawData.decode(common.ENCODING) 
                 print(username + "(RAW):" + rawData)           
 
@@ -129,8 +126,9 @@ def receiver(activeClient: client, allClients, serverInfo: server_information):
 
 def connection_handler(activeClients: client,  serverSocket, serverInfo: server_information):
     while(1):
-        activeClients.append(client())
-        activeClients[-1].socket, address = serverSocket.accept()
+        newclient = client()
+        newclient.socket, address = serverSocket.accept()
+        activeClients.append(newclient)
         if(handshake(activeClients[-1], serverInfo)):
             activeClients[-1].socket.settimeout(None)
             activeClients[-1].address = address
