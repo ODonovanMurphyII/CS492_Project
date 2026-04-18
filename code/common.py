@@ -19,6 +19,7 @@ E_MSB_LOC = 2
 E_MIDDLEB_LOC = 3
 E_LSB_LOC = 4
 ENCODING = 'latin-1'
+SOCKET_TIMEOUT = 600
 
 def frame_message(messageType: bytes, data):
     if isinstance(data, str):

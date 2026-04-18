@@ -13,6 +13,8 @@ class client:
         self.serverN = None
         self.clientE = None
         self.clientN = None
+        self.clientEBytes = None
+        self.clientNBytes = None
         self.socket = None
         self.socketInfo = None
 
@@ -21,7 +23,7 @@ me = client()
 def handshake(me: client):
     msg = common.frame_message(common.MT_PT_CHAT, common.SYN)
     me.socket.send(msg)
-    me.socket.settimeout(300)            # wait ten seconds for the server to respond
+    me.socket.settimeout(common.SOCKET_TIMEOUT)            
     connection = False  
     try:
         serverData = me.socket.recv(common.RECEIVE_LEN)  
@@ -29,10 +31,11 @@ def handshake(me: client):
         if(any(common.ACK in packets for packets in chatMessages)):
             ## We're connected send your public key
             if(specialMessages[-1] is not None):
-                parse_message(specialMessages[-1],me)
-                if me.serverE is not None and me.n is not None:
-                    msg = common.frame_message(common.MT_KEY, me.clientE+me.clientN)
-                    me.socket.send()
+                if me.serverE is not None and me.serverN is not None:
+                    me.clientEBytes = me.clientE.to_bytes(2, 'big')
+                    me.clientNBytes = me.clientN.to_bytes(2, 'big')
+                    msg = common.frame_message(common.MT_KEY, me.clientEBytes + me.clientNBytes)
+                    me.socket.send(msg)
                     connection = True
                     return connection
     except me.socket.timeout:
@@ -138,8 +141,8 @@ print("Starting Client")
 if(len(sys.argv) < 3):
     print("Missing public key information. Quiting")
     sys.exit(1)
-me.clientE = int(sys.argv[1]).to_bytes
-me.clientN = int(sys.argv[2]).to_bytes
+me.clientE = int(sys.argv[1])
+me.clientN = int(sys.argv[2])
 me.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     ## First we want to connect

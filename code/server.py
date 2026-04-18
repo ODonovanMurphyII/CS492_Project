@@ -22,7 +22,7 @@ class client:
         self.publicKeyBytes = None
         self.active = False
         self.listener = None # Might link the listener here as well
-        self.timeout = 300
+        self.timeout = common.SOCKET_TIMEOUT
 
 def handshake(activeClient: client, serverInfo: server_information):
     activeClient.settimeout(activeClient.timeout)
