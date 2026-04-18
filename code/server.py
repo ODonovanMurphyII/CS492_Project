@@ -20,6 +20,8 @@ class client:
         self.socket = None
         self.address = None
         self.publicKeyBytes = None
+        self.e = None
+        self.n = None
         self.active = False
         self.listener = None # Might link the listener here as well
 
@@ -27,7 +29,7 @@ def parse_message(message):
     i = 2
     data = bytearray()
     rawBytes = bytes(message)
-    while(rawBytes[i] != common.EOT and i < len(rawBytes)-2):
+    while(rawBytes[i] != common.EOT and i < len(rawBytes)-1):
         data.append(rawBytes[i])
         i += 1
     return data
@@ -44,6 +46,7 @@ def handshake(activeClient: client, serverInfo: server_information):
             activeClient.socket.send(msg)
             clientData = activeClient.socket.recv(common.RECEIVE_LEN)   ## Waiting for clients public key
             activeClient.publicKeyBytes = parse_message(clientData)
+            activeClient.e = activeClient.publicKeyBytes[0:2]
             connection = True
             return connection
     except socket.timeout:
