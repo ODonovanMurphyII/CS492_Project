@@ -4,16 +4,55 @@ import common
 import threading
 import key
 
-## Eventually I will make a client class...for now
+## TODO delete these
 clientSockets = []
 clientListeners = []
 clientAddresses = []
 
 class server_information:
     def __init__(self):
-        self.public_key = None
+        self.publicKey = None
         self.privateKey = None
         self.clientCount = None
+
+class client:
+    def __init__(self):
+        self.socket = None
+        self.address = None
+        self.publicKeyBytes = None
+        self.e = None
+        self.n = None
+        self.active = False
+        self.listener = None # Might link the listener here as well
+
+def parse_message(message):
+    i = 2
+    data = bytearray()
+    rawBytes = bytes(message)
+    while(rawBytes[i] != common.EOT and i < len(rawBytes)-1):
+        data.append(rawBytes[i])
+        i += 1
+    return data
+
+def handshake(activeClient: client, serverInfo: server_information):
+    activeClient.socket.settimeout(common.SOCKET_TIMEOUT)
+    connection = False
+    try:
+        clientData = activeClient.socket.recv(common.RECEIVE_LEN)  
+        if common.SYN in clientData: # Client is trying to connect
+            msg = common.frame_message(common.MT_PT_CHAT, common.ACK)  
+            activeClient.socket.send(msg)
+            msg = common.frame_message(common.MT_KEY, serverInfo.publicKey)
+            activeClient.socket.send(msg)
+            clientData = activeClient.socket.recv(common.RECEIVE_LEN)   ## Waiting for clients public key
+            activeClient.publicKeyBytes = parse_message(clientData)
+            activeClient.e = activeClient.publicKeyBytes[0:2]
+            connection = True
+            return connection
+    except socket.timeout:
+        return connection
+    except Exception as e:
+        print(f"Connection Failure: {e}")
 
 def decrypt(data, serverInfo: server_information):
     d, n = serverInfo.privateKey
@@ -27,9 +66,25 @@ def decrypt(data, serverInfo: server_information):
         plainTextBlocks.append(buffer.to_bytes(2, 'big'))
     return plainTextBlocks
 
+def encrypt(data, client: client):
+    i = 0
+    plaintextBlocks = []
+    ciphertextBlocks = []
+    e = client.publicKeyBytes[0:2]
+    n = client.publicKeyBytes[2:4]
+    e = int.from_bytes(e,'big')
+    n = int.from_bytes(n,'big')
+    for i in range(0, len(data), 2):
+        plaintextBlocks.append(data[i:i+2])
+        buffer = int.from_bytes(plaintextBlocks[-1], 'big')
+        buffer = pow(buffer, e, n)
+        ciphertextBlocks.append(buffer.to_bytes(2, 'big'))
+    ciphertextBlocks = b"".join(ciphertextBlocks)
+    return ciphertextBlocks
+
 def server_init(serverInfo: server_information, keyManager: key.key_manager):
     print("Starting Server")
-    serverInfo.public_key = keyManager.generate_public_key()
+    serverInfo.publicKey = keyManager.generate_public_key()
     serverInfo.privateKey = keyManager.generate_private_key()
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -44,52 +99,80 @@ def server_init(serverInfo: server_information, keyManager: key.key_manager):
     print("Server running")
     return serverSocket
 
-def receiver(socket, address, users, serverInfo: server_information):
+def broadcast(clients, serverInfo, message, originAddress):
+    ## First, lets get rid of clients that might have left.
+    #message = message.encode(common.ENCODING)
+    clients = [soc for soc in clients if soc.socket.fileno() != -1]            ## TODO crude but good enough for the demo
+    for client in clients:
+        if client.address[1] != originAddress:
+
+            message = encrypt(message, client)
+            message = common.frame_message(common.MT_CT_CHAT, message)
+            client.socket.send(message)
+
+def receiver(activeClient: client, allClients, serverInfo: server_information):
     while(1):
         try:
-            ## Server output (Raw)
-            rawData = socket.recv(4095)
-            if rawData:
-                rawData = rawData.decode(common.ENCODING)
-                username = "USER" + str(address[1]) 
-                print(username + "(RAW):" + rawData)           
+            ## Server output
+            username = "USER" + str(activeClient.address[1])
+            cipherText = activeClient.socket.recv(4095)
+            if not cipherText or cipherText == common.EXIT or cipherText == b'':
+                print(username + " left the chat")
+                activeClient.socket.close()
+                break
+            elif cipherText:
+                ## TODO strip the framming
+                ##rawData = rawData[1:-1]
+                #cipherText = cipherText.decode(common.ENCODING) 
+                #print(username + "(Ciphertext):" + cipherText)           
 
-                ## Sending raw data to everyone
-                broadcast = username + ":" + rawData
-                broadcast = rawData.encode(common.ENCODING) 
-                for user in users:
-                    if (user != socket):
-                        user.send(broadcast)
-
-                ## Decrypting 
-                rawData = rawData.encode(common.ENCODING)
-                plaintext = decrypt(rawData,serverInfo)
+                #cipherText = cipherText.encode(common.ENCODING)
+                plaintext = decrypt(cipherText,serverInfo)
                 plaintext = b"".join(plaintext)
                 plaintext = plaintext.decode(common.ENCODING)
+                cipherText = cipherText.decode(common.ENCODING)
+                print(username + "(ciphertext):" + cipherText)
                 print(username + "(Plaintext):" + plaintext)
+
+                #debug code
+                plaintext = username + ":" + plaintext
+                plaintext = common.frame_message(common.MT_CT_CHAT, plaintext)
+                broadcast(allClients, serverInfo, plaintext, activeClient.address[1])
         except Exception as e:
             print(f"Server Error: {e}")
-            socket.close()
-            sys.exit()
+            activeClient.socket.shutdown(socket.SHUT_RDWR)
+            activeClient.socket.close()
+            activeClient.active = False
+            break
+    return
 
-def connection_handler(sockets, addresses, listeners, serverSocket, serverInfo: server_information):
+
+            
+
+def connection_handler(activeClients: client,  serverSocket, serverInfo: server_information):
     while(1):
-        newConnection, newAddress = serverSocket.accept()
-        clientSockets.append(newConnection)
-        clientAddresses.append(newAddress)
-        username = "Client" + str(clientAddresses[-1][1])
-        print(username + " Joined!")
-        welcomeMsg = "Welcome to the Chatroom " + username + '!'
-        newConnection.send(common.frame_message(common.MT_PT_CHAT,welcomeMsg))
-        publicKeyMsg = common.frame_message(common.MT_KEY,serverInfo.public_key)
-        newConnection.send(publicKeyMsg)
-        threading.Thread(target=receiver, args=(clientSockets[-1], clientAddresses[-1], clientSockets, serverInfo), daemon=True).start()
-
+        newclient = client()
+        newclient.socket, address = serverSocket.accept()
+        activeClients.append(newclient)
+        if(handshake(activeClients[-1], serverInfo)):
+            activeClients[-1].socket.settimeout(None)
+            activeClients[-1].address = address
+            activeClients[-1].active = True
+            username = "User" + str(activeClients[-1].address[1])
+            print(username + " Joined!")
+            welcomeMsg = "Welcome to the Chatroom " + username + '!'
+            activeClients[-1].socket.send(common.frame_message(common.MT_PT_CHAT,welcomeMsg))
+            publicKeyMsg = common.frame_message(common.MT_KEY,serverInfo.publicKey)
+            activeClients[-1].socket.send(publicKeyMsg)
+            threading.Thread(target=receiver, args=(activeClients[-1], activeClients, serverInfo), daemon=True).start()
+        else:
+            activeClients.pop()     ## No connection. Get rid of the dead client
 
 serverInfo = server_information()
 keyManager = key.key_manager()
+activeClients = []
 serverSocket = server_init(serverInfo, keyManager)
-thread_connection_handler = threading.Thread(connection_handler(clientSockets, clientAddresses, clientListeners, serverSocket, serverInfo))
+thread_connection_handler = threading.Thread(connection_handler(activeClients, serverSocket, serverInfo))
 thread_connection_handler.daemon = True
 thread_connection_handler.start()
 
