@@ -28,6 +28,7 @@ me = client()
 def handshake(me: client, retryCount):
     msg = common.frame_message(common.MT_PT_CHAT, common.SYN)
     me.socket.send(msg)
+    time.sleep(0.500)
     me.socket.settimeout(common.SOCKET_TIMEOUT)            
     connection = False  
     try:
@@ -74,26 +75,29 @@ def parse_message(message, client=me):     ## TODO crude. needs error handling
     msgType = message[1]
     data = []
     i = 2
-    while message and message[i] != common.EOT: 
-        data.append(message[i])
-        i += 1
-        if(i >= len(message)):
-            break;                          # We missed the EOT somehow
-    if msgType == common.MT_PT_CHAT:
-        plaintextMessages.append(data)
-        plaintextMessages.append([])
-    elif msgType == common.MT_CT_CHAT:
-        cipherTextMessages.append(data)
-        cipherTextMessages.append([])
-    elif msgType == common.MT_KEY:                                ## TODO dangerous if another user sends a key message | Server should block these
-        specialMessages.append(data)
-        client.serverN = data[common.N_MSB_LOC] + data[common.N_LSB_LOC]
-        client.serverN = int.from_bytes(client.serverN)
-        client.serverE = data[common.E_MSB_LOC] + data[common.E_MIDDLEB_LOC] + data[common.E_LSB_LOC]
-        client.serverE = int.from_bytes(client.serverE)
-        specialMessages.append([])
-    else:
-        print("Bad packet")
+    try:
+        while message and message[i] != common.EOT: 
+            data.append(message[i])
+            i += 1
+            if(i >= len(message)):
+                break;                          # We missed the EOT somehow
+        if msgType == common.MT_PT_CHAT:
+            plaintextMessages.append(data)
+            plaintextMessages.append([])
+        elif msgType == common.MT_CT_CHAT:
+            cipherTextMessages.append(data)
+            cipherTextMessages.append([])
+        elif msgType == common.MT_KEY:                                ## TODO dangerous if another user sends a key message | Server should block these
+            specialMessages.append(data)
+            client.serverN = data[common.N_MSB_LOC] + data[common.N_LSB_LOC]
+            client.serverN = int.from_bytes(client.serverN)
+            client.serverE = data[common.E_MSB_LOC] + data[common.E_MIDDLEB_LOC] + data[common.E_LSB_LOC]
+            client.serverE = int.from_bytes(client.serverE)
+            specialMessages.append([])
+        else:
+            print("Bad packet")
+    except:
+        print("Error reading data from server")
    
 
 def create_message_list(incomingData):

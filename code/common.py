@@ -19,11 +19,11 @@ E_MSB_LOC = 2
 E_MIDDLEB_LOC = 3
 E_LSB_LOC = 4
 ENCODING = 'latin-1'
-SOCKET_TIMEOUT = 600
+SOCKET_TIMEOUT = 5
 
 def frame_message(messageType: bytes, data):
     if isinstance(data, str):
-        data = data.encode('utf-8')
+        data = data.encode(ENCODING)
         message = SOH + messageType + data + EOT
     else:
         bytes = [data[i:i+1] for i in range(len(data))]
