@@ -17,6 +17,9 @@ class key_manager:
     def generate_private_key(self):
         d = pow(int.from_bytes(self.eAsBytes), -1, self.phi)
         return (d, self.n)
+    
+
+
 
         
         
